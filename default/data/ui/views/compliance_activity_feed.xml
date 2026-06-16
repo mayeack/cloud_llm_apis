@@ -1,0 +1,86 @@
+<dashboard version="2" theme="dark">
+    <label>Compliance Activity Feed</label>
+    <description>Authentication, chat, file, project, and administrative actions from the Anthropic Compliance Activity Feed.</description>
+    <definition><![CDATA[
+{
+    "title": "Compliance Activity Feed",
+    "description": "Governance activity by action, actor, and source.",
+    "inputs": {
+        "input_time": {
+            "type": "input.timerange",
+            "title": "Time Range",
+            "options": { "token": "time", "defaultValue": "-7d@d,now" }
+        }
+    },
+    "dataSources": {
+        "ds_by_action": {
+            "type": "ds.search",
+            "name": "Activity by action",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:compliance:activity | timechart span=1h count by 'ai.event.action'",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_object_type": {
+            "type": "ds.search",
+            "name": "Actions by object type",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:compliance:activity | stats count by 'ai.governance.object_type' | sort -count | rename ai.governance.object_type as object_type",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_top_actors": {
+            "type": "ds.search",
+            "name": "Top actors",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:compliance:activity | stats count min(_time) as first_seen max(_time) as last_seen dc('ai.event.type') as distinct_actions by 'ai.actor.email' 'ai.actor.ip' | sort -count | head 20 | rename ai.actor.email as actor_email ai.actor.ip as actor_ip | fieldformat first_seen=strftime(first_seen,\"%F %T\") | fieldformat last_seen=strftime(last_seen,\"%F %T\")",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_compliance_access": {
+            "type": "ds.search",
+            "name": "Compliance API accessed events",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:compliance:activity ('ai.event.type'=*compliance_api_accessed* OR 'ai.risk.content_retrieved'=true) | timechart span=1h count",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        }
+    },
+    "visualizations": {
+        "viz_by_action": {
+            "type": "splunk.column",
+            "title": "Activity Volume by Action",
+            "dataSources": { "primary": "ds_by_action" },
+            "options": { "xField": "_time", "stackMode": "stacked" }
+        },
+        "viz_object_type": {
+            "type": "splunk.pie",
+            "title": "Actions by Object Type",
+            "dataSources": { "primary": "ds_object_type" },
+            "options": { "labelField": "object_type" }
+        },
+        "viz_compliance_access": {
+            "type": "splunk.line",
+            "title": "Compliance API Access Events",
+            "dataSources": { "primary": "ds_compliance_access" },
+            "options": { "xField": "_time" }
+        },
+        "viz_top_actors": {
+            "type": "splunk.table",
+            "title": "Top Actors by Activity (with IPs)",
+            "dataSources": { "primary": "ds_top_actors" }
+        }
+    },
+    "layout": {
+        "type": "grid",
+        "globalInputs": [ "input_time" ],
+        "structure": [
+            { "item": "viz_by_action", "type": "block", "position": { "x": 0, "y": 0, "w": 800, "h": 300 } },
+            { "item": "viz_object_type", "type": "block", "position": { "x": 800, "y": 0, "w": 400, "h": 300 } },
+            { "item": "viz_compliance_access", "type": "block", "position": { "x": 0, "y": 300, "w": 1200, "h": 260 } },
+            { "item": "viz_top_actors", "type": "block", "position": { "x": 0, "y": 560, "w": 1200, "h": 340 } }
+        ]
+    }
+}
+    ]]></definition>
+</dashboard>

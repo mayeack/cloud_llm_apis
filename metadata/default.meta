@@ -1,0 +1,22 @@
+[]
+access = read : [ * ], write : [ admin, power ]
+export = system
+
+[views]
+access = read : [ * ], write : [ admin ]
+export = system
+
+[props]
+export = system
+
+[transforms]
+export = system
+
+[eventtypes]
+export = system
+
+[tags]
+export = system
+
+[macros]
+export = system

@@ -1,0 +1,116 @@
+<dashboard version="2" theme="dark">
+    <label>AI Usage Executive Overview</label>
+    <description>Token and request volume across providers, products, and models, with cache efficiency and server-tool use.</description>
+    <definition><![CDATA[
+{
+    "title": "AI Usage Executive Overview",
+    "description": "Token and request volume across providers, products, and models.",
+    "inputs": {
+        "input_time": {
+            "type": "input.timerange",
+            "title": "Time Range",
+            "options": { "token": "time", "defaultValue": "-7d@d,now" }
+        }
+    },
+    "dataSources": {
+        "ds_tokens": {
+            "type": "ds.search",
+            "name": "Tokens by model",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:usage | timechart span=1h sum('ai.tokens.total') as tokens by 'ai.model'",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_requests": {
+            "type": "ds.search",
+            "name": "Requests over time",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:usage | timechart span=1h sum('ai.request.count') as requests",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_cache": {
+            "type": "ds.search",
+            "name": "Cache efficiency",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:usage | stats sum('ai.tokens.cache_read') as cr sum('ai.tokens.input.uncached') as un sum('ai.tokens.cache_creation.total') as cc | eval cache_efficiency_pct=round(cr/(cr+un+cc)*100,1) | fields cache_efficiency_pct",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_top_ws": {
+            "type": "ds.search",
+            "name": "Top workspaces",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:usage | stats sum('ai.tokens.total') as tokens by 'ai.workspace.id' | sort -tokens | head 10 | rename ai.workspace.id as workspace",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_top_keys": {
+            "type": "ds.search",
+            "name": "Top API keys",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:usage | stats sum('ai.tokens.total') as tokens sum('ai.request.count') as requests by 'ai.api_key.id' | sort -tokens | head 10 | rename ai.api_key.id as api_key",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_websearch": {
+            "type": "ds.search",
+            "name": "Web search server-tool use",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:usage | timechart span=1h sum('ai.server_tool.web_search.requests') as web_search_requests",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        }
+    },
+    "visualizations": {
+        "viz_tokens": {
+            "type": "splunk.line",
+            "title": "Total Tokens Over Time by Model",
+            "dataSources": { "primary": "ds_tokens" },
+            "options": { "xField": "_time" }
+        },
+        "viz_requests": {
+            "type": "splunk.column",
+            "title": "Request Count Over Time",
+            "dataSources": { "primary": "ds_requests" },
+            "options": { "xField": "_time" }
+        },
+        "viz_cache": {
+            "type": "splunk.singlevalue",
+            "title": "Cache Efficiency (%)",
+            "dataSources": { "primary": "ds_cache" },
+            "options": { "majorField": "cache_efficiency_pct", "unit": "%" }
+        },
+        "viz_top_ws": {
+            "type": "splunk.bar",
+            "title": "Top Workspaces by Tokens",
+            "dataSources": { "primary": "ds_top_ws" },
+            "options": { "yField": "workspace" }
+        },
+        "viz_top_keys": {
+            "type": "splunk.table",
+            "title": "Top API Keys by Tokens",
+            "dataSources": { "primary": "ds_top_keys" }
+        },
+        "viz_websearch": {
+            "type": "splunk.area",
+            "title": "Web Search Requests",
+            "dataSources": { "primary": "ds_websearch" },
+            "options": { "xField": "_time" }
+        }
+    },
+    "layout": {
+        "type": "grid",
+        "globalInputs": [ "input_time" ],
+        "structure": [
+            { "item": "viz_tokens", "type": "block", "position": { "x": 0, "y": 0, "w": 800, "h": 300 } },
+            { "item": "viz_cache", "type": "block", "position": { "x": 800, "y": 0, "w": 400, "h": 300 } },
+            { "item": "viz_requests", "type": "block", "position": { "x": 0, "y": 300, "w": 600, "h": 280 } },
+            { "item": "viz_websearch", "type": "block", "position": { "x": 600, "y": 300, "w": 600, "h": 280 } },
+            { "item": "viz_top_ws", "type": "block", "position": { "x": 0, "y": 580, "w": 600, "h": 300 } },
+            { "item": "viz_top_keys", "type": "block", "position": { "x": 600, "y": 580, "w": 600, "h": 300 } }
+        ]
+    }
+}
+    ]]></definition>
+</dashboard>

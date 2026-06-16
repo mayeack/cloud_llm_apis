@@ -1,0 +1,117 @@
+<dashboard version="2" theme="dark">
+    <label>AI Cost and FinOps</label>
+    <description>Spend over time by model, product, and workspace, with discount delta, cost by token/cost type, and month run-rate forecast.</description>
+    <definition><![CDATA[
+{
+    "title": "AI Cost and FinOps",
+    "description": "Spend over time by model, product, and workspace.",
+    "inputs": {
+        "input_time": {
+            "type": "input.timerange",
+            "title": "Time Range",
+            "options": { "token": "time", "defaultValue": "-30d@d,now" }
+        }
+    },
+    "dataSources": {
+        "ds_cost_model": {
+            "type": "ds.search",
+            "name": "Cost by model",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:cost | timechart span=1d sum('ai.cost.amount_usd') as cost_usd by 'ai.model'",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_cost_total": {
+            "type": "ds.search",
+            "name": "Total spend",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:cost | stats sum('ai.cost.amount_usd') as cost_usd | eval cost_usd=round(cost_usd,2)",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_discount": {
+            "type": "ds.search",
+            "name": "Discount delta",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:cost | stats sum('ai.cost.list_amount_usd') as list_usd sum('ai.cost.amount_usd') as net_usd | eval discount_usd=round(list_usd-net_usd,2) | fields discount_usd",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_cost_ws": {
+            "type": "ds.search",
+            "name": "Cost by workspace",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:cost | stats sum('ai.cost.amount_usd') as cost_usd by 'ai.workspace.id' | sort -cost_usd | head 10 | rename ai.workspace.id as workspace",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_cost_tokentype": {
+            "type": "ds.search",
+            "name": "Cost by token type",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:cost | stats sum('ai.cost.amount_usd') as cost_usd by 'ai.cost.token_type' | sort -cost_usd | rename ai.cost.token_type as token_type",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_runrate": {
+            "type": "ds.search",
+            "name": "Month run-rate forecast",
+            "options": {
+                "query": "index=cloud_llm_apis sourcetype=anthropic:analytics:cost earliest=@mon latest=now | stats sum('ai.cost.amount_usd') as mtd_usd | eval day_of_month=tonumber(strftime(now(),\"%d\")), days_in_month=tonumber(strftime(relative_time(now(),\"+1mon@mon-1d\"),\"%d\")), forecast_usd=round(mtd_usd/day_of_month*days_in_month,2) | fields forecast_usd",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        }
+    },
+    "visualizations": {
+        "viz_cost_model": {
+            "type": "splunk.column",
+            "title": "Cost Over Time by Model (USD)",
+            "dataSources": { "primary": "ds_cost_model" },
+            "options": { "xField": "_time", "stackMode": "stacked" }
+        },
+        "viz_cost_total": {
+            "type": "splunk.singlevalue",
+            "title": "Total Spend (USD)",
+            "dataSources": { "primary": "ds_cost_total" },
+            "options": { "majorField": "cost_usd", "unit": "$", "unitPosition": "before" }
+        },
+        "viz_discount": {
+            "type": "splunk.singlevalue",
+            "title": "Discount Delta (USD)",
+            "dataSources": { "primary": "ds_discount" },
+            "options": { "majorField": "discount_usd", "unit": "$", "unitPosition": "before" }
+        },
+        "viz_runrate": {
+            "type": "splunk.singlevalue",
+            "title": "Forecast Month Run-Rate (USD)",
+            "dataSources": { "primary": "ds_runrate" },
+            "options": { "majorField": "forecast_usd", "unit": "$", "unitPosition": "before" }
+        },
+        "viz_cost_ws": {
+            "type": "splunk.bar",
+            "title": "Cost by Workspace (USD)",
+            "dataSources": { "primary": "ds_cost_ws" },
+            "options": { "yField": "workspace" }
+        },
+        "viz_cost_tokentype": {
+            "type": "splunk.pie",
+            "title": "Cost by Token Type",
+            "dataSources": { "primary": "ds_cost_tokentype" },
+            "options": { "labelField": "token_type" }
+        }
+    },
+    "layout": {
+        "type": "grid",
+        "globalInputs": [ "input_time" ],
+        "structure": [
+            { "item": "viz_cost_total", "type": "block", "position": { "x": 0, "y": 0, "w": 400, "h": 180 } },
+            { "item": "viz_discount", "type": "block", "position": { "x": 400, "y": 0, "w": 400, "h": 180 } },
+            { "item": "viz_runrate", "type": "block", "position": { "x": 800, "y": 0, "w": 400, "h": 180 } },
+            { "item": "viz_cost_model", "type": "block", "position": { "x": 0, "y": 180, "w": 1200, "h": 320 } },
+            { "item": "viz_cost_ws", "type": "block", "position": { "x": 0, "y": 500, "w": 600, "h": 300 } },
+            { "item": "viz_cost_tokentype", "type": "block", "position": { "x": 600, "y": 500, "w": 600, "h": 300 } }
+        ]
+    }
+}
+    ]]></definition>
+</dashboard>

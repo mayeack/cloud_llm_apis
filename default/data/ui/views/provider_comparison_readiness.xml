@@ -1,0 +1,101 @@
+<dashboard version="2" theme="dark">
+    <label>Provider Comparison Readiness</label>
+    <description>Provider-neutral views built entirely on normalized ai.* fields so OpenAI, Cursor, and other providers can land in the same dashboards later.</description>
+    <definition><![CDATA[
+{
+    "title": "Provider Comparison Readiness",
+    "description": "Cross-provider usage and cost on normalized ai.* fields.",
+    "inputs": {
+        "input_time": {
+            "type": "input.timerange",
+            "title": "Time Range",
+            "options": { "token": "time", "defaultValue": "-30d@d,now" }
+        }
+    },
+    "dataSources": {
+        "ds_tokens_provider": {
+            "type": "ds.search",
+            "name": "Tokens by provider",
+            "options": {
+                "query": "index=cloud_llm_apis ('ai.event.category'=usage) | timechart span=1d sum('ai.tokens.total') as tokens by 'ai.provider'",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_cost_provider": {
+            "type": "ds.search",
+            "name": "Cost by provider",
+            "options": {
+                "query": "index=cloud_llm_apis ('ai.event.category'=cost) | timechart span=1d sum('ai.cost.amount_usd') as cost_usd by 'ai.provider'",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_surface": {
+            "type": "ds.search",
+            "name": "Tokens by product surface",
+            "options": {
+                "query": "index=cloud_llm_apis ('ai.event.category'=usage) | stats sum('ai.tokens.total') as tokens by 'ai.product_surface' | sort -tokens | rename ai.product_surface as product_surface",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_provider_summary": {
+            "type": "ds.search",
+            "name": "Provider summary",
+            "options": {
+                "query": "index=cloud_llm_apis | stats sum('ai.tokens.total') as tokens sum('ai.cost.amount_usd') as cost_usd dc('ai.actor.email') as users dc('ai.model') as models by 'ai.provider' | eval cost_usd=round(cost_usd,2) | rename ai.provider as provider",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        },
+        "ds_category": {
+            "type": "ds.search",
+            "name": "Events by category",
+            "options": {
+                "query": "index=cloud_llm_apis | stats count by 'ai.event.category' | sort -count | rename ai.event.category as event_category",
+                "queryParameters": { "earliest": "$time.earliest$", "latest": "$time.latest$" }
+            }
+        }
+    },
+    "visualizations": {
+        "viz_tokens_provider": {
+            "type": "splunk.line",
+            "title": "Tokens by Provider (ai.provider)",
+            "dataSources": { "primary": "ds_tokens_provider" },
+            "options": { "xField": "_time" }
+        },
+        "viz_cost_provider": {
+            "type": "splunk.line",
+            "title": "Cost by Provider (ai.cost.amount_usd)",
+            "dataSources": { "primary": "ds_cost_provider" },
+            "options": { "xField": "_time" }
+        },
+        "viz_surface": {
+            "type": "splunk.bar",
+            "title": "Tokens by Product Surface",
+            "dataSources": { "primary": "ds_surface" },
+            "options": { "yField": "product_surface" }
+        },
+        "viz_category": {
+            "type": "splunk.pie",
+            "title": "Events by Category",
+            "dataSources": { "primary": "ds_category" },
+            "options": { "labelField": "event_category" }
+        },
+        "viz_provider_summary": {
+            "type": "splunk.table",
+            "title": "Provider Summary (normalized fields)",
+            "dataSources": { "primary": "ds_provider_summary" }
+        }
+    },
+    "layout": {
+        "type": "grid",
+        "globalInputs": [ "input_time" ],
+        "structure": [
+            { "item": "viz_tokens_provider", "type": "block", "position": { "x": 0, "y": 0, "w": 600, "h": 300 } },
+            { "item": "viz_cost_provider", "type": "block", "position": { "x": 600, "y": 0, "w": 600, "h": 300 } },
+            { "item": "viz_provider_summary", "type": "block", "position": { "x": 0, "y": 300, "w": 1200, "h": 220 } },
+            { "item": "viz_surface", "type": "block", "position": { "x": 0, "y": 520, "w": 600, "h": 300 } },
+            { "item": "viz_category", "type": "block", "position": { "x": 600, "y": 520, "w": 600, "h": 300 } }
+        ]
+    }
+}
+    ]]></definition>
+</dashboard>

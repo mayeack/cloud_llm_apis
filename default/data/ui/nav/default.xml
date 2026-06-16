@@ -1,0 +1,21 @@
+<nav search_view="search" color="#3C444D">
+    <view name="ai_usage_executive_overview" default="true" />
+    <collection label="Usage &amp; Cost">
+        <view name="ai_usage_executive_overview" />
+        <view name="ai_cost_finops" />
+    </collection>
+    <collection label="Compliance &amp; Governance">
+        <view name="compliance_activity_feed" />
+        <view name="content_governance_ediscovery" />
+    </collection>
+    <collection label="Adoption">
+        <view name="adoption_engagement" />
+    </collection>
+    <collection label="Operations">
+        <view name="data_quality_ta_health" />
+        <view name="provider_comparison_readiness" />
+    </collection>
+    <collection label="General">
+        <view name="search" />
+    </collection>
+</nav>

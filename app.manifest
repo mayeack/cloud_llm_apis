@@ -1,0 +1,46 @@
+{
+    "schemaVersion": "2.0.0",
+    "info": {
+        "title": "Cloud LLM APIs Governance",
+        "id": {
+            "group": null,
+            "name": "TA-cloud_llm_apis",
+            "version": "1.0.0"
+        },
+        "author": [
+            {
+                "name": "Cloud LLM APIs TA",
+                "email": null,
+                "company": null
+            }
+        ],
+        "releaseDate": null,
+        "description": "Provider-neutral connector for frontier LLM lab compliance, usage, cost, and engagement APIs (Anthropic first). Normalizes data into an ai.* AI governance schema.",
+        "classification": {
+            "intendedAudience": null,
+            "categories": [],
+            "developmentStatus": null
+        },
+        "commonInformationModels": null,
+        "license": {
+            "name": null,
+            "text": null,
+            "uri": null
+        },
+        "privacyPolicy": {
+            "name": null,
+            "text": null,
+            "uri": null
+        },
+        "releaseNotes": {
+            "name": null,
+            "text": null,
+            "uri": null
+        }
+    },
+    "dependencies": null,
+    "tasks": null,
+    "inputGroups": null,
+    "incompatibleApps": null,
+    "platformRequirements": null
+}
