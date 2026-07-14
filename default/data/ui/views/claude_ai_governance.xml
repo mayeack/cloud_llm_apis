@@ -1,0 +1,207 @@
+<form version="1.1" theme="dark">
+  <label>Claude Enterprise - Governance</label>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time Range</label>
+      <default>
+        <earliest>-14d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="index">
+      <label>Index</label>
+      <choice value="*">All indexes</choice>
+      <choice value="claude_compliance">claude_compliance</choice>
+      <default>claude_compliance</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Synced Users</title>
+      <single>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:user" | stats dc(id) AS users</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Synced Groups</title>
+      <single>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:group" | stats dc(id) AS groups</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Project Events</title>
+      <single>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type=project_* | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>User Invites</title>
+      <single>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type=org_user_invite_* | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Data Exports</title>
+      <single>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type=org_data_export_* | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Project Lifecycle Events</title>
+      <chart>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type=project_* | timechart count by event_type</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Project Visibility Changes</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type="project_visibility_changed" | table _time, actor_email, claude_project_id, event_info | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>User Invite Lifecycle</title>
+      <chart>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type=org_user_invite_* | stats count by event_type | sort event_type</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Data Export Activity</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type=org_data_export_* | table _time, event_type, actor_email, organization_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Conversation Events</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" (event_type=conversation_* OR event_type=claude_chat_*) | stats count by event_type, actor_email | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Directory Snapshot (Users)</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:user" | sort - _time | dedup id | table email_address, name, role, status, id</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Directory Snapshot (Groups)</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:group" | sort - _time | dedup id | table name, id, organization_id</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>File Uploads</title>
+      <table>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_file_events | stats count by actor_email, claude_project_id | sort - count | head 20</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Agent Usage by Product</title>
+      <chart>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:analytics:usage" | stats sum(requests) AS requests by product | sort - requests</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Token Usage by Model</title>
+      <chart>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:analytics:usage" | stats sum(output_tokens) AS output_tokens by model | sort - output_tokens | head 10</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Claude Code Tool Accept vs Reject</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:analytics:user_activity" | stats sum(claude_code_metrics.tool_accepted_count) AS accepted sum(claude_code_metrics.tool_rejected_count) AS rejected by email | eval reject_rate=if((accepted+rejected)&gt;0, round(100*rejected/(accepted+rejected),1), 0) | sort - rejected | head 20</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>MCP Connector Usage</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:analytics:user_activity" | stats sum(chat_metrics.connectors_used_count) AS chat_connectors sum(cowork_metrics.connectors_used_count) AS cowork_connectors by email | eval total_connectors=chat_connectors+cowork_connectors | where total_connectors &gt; 0 | sort - total_connectors | head 20</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

@@ -16,3 +16,9 @@ local.meta
 .env
 *.pem
 *.key
+
+# Presentations / docs (not part of the TA)
+*.pptx
+
+# Packaged TA build artifact (source is tracked in-repo)
+TA-anthropic_claude_enterprise-*.tar.gz

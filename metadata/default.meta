@@ -1,15 +1,41 @@
+# Application-level permissions
+
 []
-access = read : [ * ], write : [ admin, power ]
+owner = admin
+access = read : [ * ], write : [ admin, sc_admin ]
+export = system
+
+[admin/TA-anthropic_claude_enterprise_account]
+access = read : [ * ], write : [ admin, sc_admin, power ]
+
+[admin/TA-anthropic_claude_enterprise_settings]
+access = read : [ * ], write : [ admin, sc_admin, power ]
+
+[admin/TA-anthropic_claude_enterprise_compliance_activities]
+access = read : [ * ], write : [ admin, sc_admin, power ]
+
+[admin/TA-anthropic_claude_enterprise_compliance_directory]
+access = read : [ * ], write : [ admin, sc_admin, power ]
+
+[admin/TA-anthropic_claude_enterprise_compliance_content]
+access = read : [ * ], write : [ admin, sc_admin, power ]
+
+[admin/TA-anthropic_claude_enterprise_analytics_reports]
+access = read : [ * ], write : [ admin, sc_admin, power ]
+
+[views/claude_security_audit]
+export = system
+
+[views/claude_ai_governance]
+export = system
+
+[views/claude_tokenomics]
 export = system
 
 [views]
-access = read : [ * ], write : [ admin ]
 export = system
 
-[props]
-export = system
-
-[transforms]
+[savedsearches]
 export = system
 
 [eventtypes]
@@ -18,5 +44,8 @@ export = system
 [tags]
 export = system
 
-[macros]
+[props]
+export = system
+
+[collections]
 export = system

@@ -1,46 +1,63 @@
 {
-    "schemaVersion": "2.0.0",
+    "dependencies": null,
+    "incompatibleApps": null,
     "info": {
-        "title": "Cloud LLM APIs Governance",
-        "id": {
-            "group": null,
-            "name": "TA-cloud_llm_apis",
-            "version": "1.0.0"
-        },
         "author": [
             {
-                "name": "Cloud LLM APIs TA",
-                "email": null,
-                "company": null
+                "company": null,
+                "email": "support@example.com",
+                "name": "Anthropic Claude Enterprise Add-on Contributors"
             }
         ],
-        "releaseDate": null,
-        "description": "Provider-neutral connector for frontier LLM lab compliance, usage, cost, and engagement APIs (Anthropic first). Normalizes data into an ai.* AI governance schema.",
         "classification": {
-            "intendedAudience": null,
-            "categories": [],
-            "developmentStatus": null
+            "categories": [
+                "Security, Fraud & Compliance"
+            ],
+            "developmentStatus": "Production/Stable",
+            "intendedAudience": "IT Professionals"
         },
-        "commonInformationModels": null,
+        "commonInformationModels": {
+            "dataModels": [
+                "Authentication",
+                "Change"
+            ],
+            "version": "6.0.0"
+        },
+        "description": "Claude Enterprise compliance and analytics data for Splunk.",
+        "id": {
+            "group": null,
+            "name": "TA-anthropic_claude_enterprise",
+            "version": "1.0.1"
+        },
         "license": {
-            "name": null,
-            "text": null,
-            "uri": null
+            "name": "Apache-2.0",
+            "text": "./LICENSES/LICENSE.txt",
+            "uri": "https://www.apache.org/licenses/LICENSE-2.0"
         },
         "privacyPolicy": {
             "name": null,
             "text": null,
             "uri": null
         },
+        "releaseDate": null,
         "releaseNotes": {
-            "name": null,
-            "text": null,
-            "uri": null
-        }
+            "name": "README",
+            "text": "README.txt",
+            "uri": ""
+        },
+        "title": "Anthropic Claude Enterprise Add-on"
     },
-    "dependencies": null,
-    "tasks": null,
     "inputGroups": null,
-    "incompatibleApps": null,
-    "platformRequirements": null
+    "platformRequirements": null,
+    "schemaVersion": "2.0.0",
+    "supportedDeployments": [
+        "_standalone",
+        "_distributed",
+        "_search_head_clustering"
+    ],
+    "targetWorkloads": [
+        "_search_heads",
+        "_indexers"
+    ],
+    "tasks": null
 }
