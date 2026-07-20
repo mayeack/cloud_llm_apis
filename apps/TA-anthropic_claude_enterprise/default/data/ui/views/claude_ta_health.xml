@@ -1,0 +1,82 @@
+<form version="1.1" theme="dark">
+  <label>Anthropic TA - Operations</label>
+  <description>Operational health of the add-on: ingestion freshness, volumes, and input errors. Input-error panels read index=_internal and need an admin-capable role.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time Range</label>
+      <default>
+        <earliest>-24h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Ingestion Lag by Sourcetype</title>
+      <table>
+        <search>
+          <query>| tstats latest(_time) AS last WHERE `anthropic_claude_index` sourcetype=anthropic:* by sourcetype | eval lag_minutes=round((now()-last)/60,1) | eval last=strftime(last,"%Y-%m-%d %H:%M:%S") | table sourcetype, last, lag_minutes | sort - lag_minutes</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Event Volume by Sourcetype</title>
+      <chart>
+        <search>
+          <query>| tstats count WHERE `anthropic_claude_index` sourcetype=anthropic:* by _time span=1h, sourcetype | timechart span=1h sum(count) by sourcetype</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Top Event Types</title>
+      <table>
+        <search>
+          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" | stats count by event_type | sort - count | head 15</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Input Errors (24h)</title>
+      <table>
+        <search>
+          <query>index=_internal source=*ta-anthropic_claude_enterprise*.log* log_level=ERROR | stats count by source | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Latest Input Errors</title>
+      <table>
+        <search>
+          <query>index=_internal source=*ta-anthropic_claude_enterprise*.log* log_level=ERROR | table _time, source, _raw | sort - _time | head 20</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>API Retry / Rate-Limit Trend</title>
+      <chart>
+        <search>
+          <query>index=_internal source=*ta-anthropic_claude_enterprise*.log* ("Rate limited" OR "429" OR "AnthropicAPIError") | timechart span=1h count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+</form>

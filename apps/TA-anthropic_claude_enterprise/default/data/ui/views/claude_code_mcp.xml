@@ -1,0 +1,81 @@
+<form version="1.1" theme="dark">
+  <label>Claude Enterprise - Claude Code &amp; MCP</label>
+  <description>Claude Code adoption and MCP/connector governance. Activity panels work from the Compliance API; analytics panels require the analytics_reports input.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time Range</label>
+      <default>
+        <earliest>-14d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Claude Code Settings Changes</title>
+      <table>
+        <search>
+          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" event_type=claude_code_* | table _time, event_type, actor_email | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>MCP &amp; Integration Events</title>
+      <chart>
+        <search>
+          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" (event_type=mcp_* OR event_type=integration_* OR event_type=extension_*) | timechart count by event_type</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Claude Code Active Users</title>
+      <single>
+        <search>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | where 'claude_code_metrics.sessions' &gt; 0 | stats dc(email) AS cc_users</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Claude Code Spend (USD)</title>
+      <single>
+        <search>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:cost" product=claude_code | eval cost_usd=coalesce(total_cost_usd, tonumber(amount)/100) | stats sum(cost_usd) AS spend_usd | eval spend_usd=round(spend_usd,2)</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Claude Code Tool Accept vs Reject</title>
+      <table>
+        <search>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | stats sum(claude_code_metrics.tool_accepted_count) AS accepted sum(claude_code_metrics.tool_rejected_count) AS rejected by email | eval reject_rate=if((accepted+rejected)&gt;0, round(100*rejected/(accepted+rejected),1), 0) | sort - rejected | head 20</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>MCP Connector Usage</title>
+      <table>
+        <search>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | stats sum(chat_metrics.connectors_used_count) AS chat_connectors sum(cowork_metrics.connectors_used_count) AS cowork_connectors by email | eval total_connectors=chat_connectors+cowork_connectors | where total_connectors &gt; 0 | sort - total_connectors | head 20</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

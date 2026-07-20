@@ -1,0 +1,15 @@
+# Build products
+dist/
+build_out/
+
+# Splunk instance state — never tracked (holds credentials, configured inputs, enables)
+local/
+passwords.conf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store
