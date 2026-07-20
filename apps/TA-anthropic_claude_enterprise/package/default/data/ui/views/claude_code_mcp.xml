@@ -15,7 +15,7 @@
       <title>Claude Code Settings Changes</title>
       <table>
         <search>
-          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" event_type=claude_code_* | table _time, event_type, actor_email | sort - _time</query>
+          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" ai.event_type="claude_code_*" | table _time, ai.event_type, ai.actor.email | sort - _time</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>
@@ -25,7 +25,7 @@
       <title>MCP &amp; Integration Events</title>
       <chart>
         <search>
-          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" (event_type=mcp_* OR event_type=integration_* OR event_type=extension_*) | timechart count by event_type</query>
+          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" (ai.event_type="mcp_*" OR ai.event_type="integration_*" OR ai.event_type="extension_*") | timechart count by ai.event_type</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>
@@ -39,7 +39,7 @@
       <title>Claude Code Active Users</title>
       <single>
         <search>
-          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | where 'claude_code_metrics.sessions' &gt; 0 | stats dc(email) AS cc_users</query>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | rename raw.claude_code_metrics.sessions AS sessions, ai.actor.email AS email | where sessions &gt; 0 | stats dc(email) AS cc_users</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>
@@ -49,7 +49,7 @@
       <title>Claude Code Spend (USD)</title>
       <single>
         <search>
-          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:cost" product=claude_code | eval cost_usd=coalesce(total_cost_usd, tonumber(amount)/100) | stats sum(cost_usd) AS spend_usd | eval spend_usd=round(spend_usd,2)</query>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:cost" raw.product=claude_code | stats sum('ai.cost.amount_usd') AS spend_usd | eval spend_usd=round(spend_usd,2)</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>
@@ -61,7 +61,7 @@
       <title>Claude Code Tool Accept vs Reject</title>
       <table>
         <search>
-          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | stats sum(claude_code_metrics.tool_accepted_count) AS accepted sum(claude_code_metrics.tool_rejected_count) AS rejected by email | eval reject_rate=if((accepted+rejected)&gt;0, round(100*rejected/(accepted+rejected),1), 0) | sort - rejected | head 20</query>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | rename raw.claude_code_metrics.tool_accepted_count AS tool_accepted, raw.claude_code_metrics.tool_rejected_count AS tool_rejected, ai.actor.email AS email | stats sum(tool_accepted) AS accepted sum(tool_rejected) AS rejected by email | eval reject_rate=if((accepted+rejected)&gt;0, round(100*rejected/(accepted+rejected),1), 0) | sort - rejected | head 20</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>
@@ -71,7 +71,7 @@
       <title>MCP Connector Usage</title>
       <table>
         <search>
-          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | stats sum(chat_metrics.connectors_used_count) AS chat_connectors sum(cowork_metrics.connectors_used_count) AS cowork_connectors by email | eval total_connectors=chat_connectors+cowork_connectors | where total_connectors &gt; 0 | sort - total_connectors | head 20</query>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:user_activity" | rename raw.chat_metrics.connectors_used_count AS chat_connectors, raw.cowork_metrics.connectors_used_count AS cowork_connectors, ai.actor.email AS email | stats sum(chat_connectors) AS chat_connectors sum(cowork_connectors) AS cowork_connectors by email | eval total_connectors=chat_connectors+cowork_connectors | where total_connectors &gt; 0 | sort - total_connectors | head 20</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>

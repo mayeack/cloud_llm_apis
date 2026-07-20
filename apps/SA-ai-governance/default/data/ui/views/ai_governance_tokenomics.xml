@@ -1,0 +1,205 @@
+<form version="1.1" theme="dark">
+  <label>AI Governance - Tokenomics</label>
+  <description>Adoption, token, spend, and spend-limit reporting from provider analytics feeds. Index scope comes from the ai_governance_index macro.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time Range</label>
+      <default>
+        <earliest>-30d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="provider" searchWhenChanged="true">
+      <label>Provider</label>
+      <choice value="*">All providers</choice>
+      <default>*</default>
+      <fieldForLabel>vendor</fieldForLabel>
+      <fieldForValue>vendor</fieldForValue>
+      <search>
+        <query>`ai_governance_index` | stats count by ai.vendor | rename ai.vendor AS vendor | fields vendor</query>
+        <earliest>-7d@d</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Latest DAU</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="summary" ai.vendor="$provider$" | sort - _time | head 1 | rename ai.adoption.daily_active_users AS daily_active_users | fields daily_active_users</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Latest Adoption Rate (%)</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="summary" ai.vendor="$provider$" | sort - _time | head 1 | rename ai.adoption.daily_rate AS daily_adoption_rate | fields daily_adoption_rate</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Total Spend (USD)</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="cost" ai.vendor="$provider$" | rename ai.cost.amount_usd AS cost_usd | stats sum(cost_usd) AS total_spend | eval total_spend=round(total_spend,2)</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Total Output Tokens</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="usage" ai.vendor="$provider$" | rename ai.usage.output_tokens AS out_tokens | stats sum(out_tokens) AS output_tokens</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Users Near Spend Limit (≥80%)</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="spend_limit" ai.vendor="$provider$" | rename ai.cost.utilization_pct AS utilization_pct | where utilization_pct&gt;=80 | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Daily Active Users</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.record="summary" ai.vendor="$provider$" | rename ai.adoption.daily_active_users AS daily_users, ai.adoption.weekly_active_users AS weekly_users | timechart avg(daily_users) AS dau avg(weekly_users) AS wau</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Seat Adoption Rate (%)</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.record="summary" ai.vendor="$provider$" | rename ai.adoption.daily_rate AS daily_rate, ai.adoption.monthly_rate AS monthly_rate | timechart avg(daily_rate) AS daily avg(monthly_rate) AS monthly</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Token Usage by Product</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.record="usage" ai.vendor="$provider$" | rename raw.product AS product, ai.usage.total_tokens AS tokens | stats sum(tokens) AS total_tokens by product | fields product, total_tokens</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Spend by Product (USD)</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.record="cost" ai.vendor="$provider$" | rename raw.product AS product, ai.cost.amount_usd AS cost_usd | stats sum(cost_usd) AS spend_usd by product | sort - spend_usd</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Daily Spend Trend (USD)</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.record="cost" ai.vendor="$provider$" | rename ai.cost.amount_usd AS cost_usd | timechart sum(cost_usd) AS spend_usd</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">area</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Token Volume Trend</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.record="usage" ai.vendor="$provider$" | rename ai.usage.output_tokens AS out_tokens, ai.usage.input_tokens AS in_tokens | timechart sum(out_tokens) AS output_tokens sum(in_tokens) AS input_tokens</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">line</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Top Users by Cost</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="user_cost" ai.vendor="$provider$" | rename ai.actor.email AS user, ai.cost.amount_usd AS cost | stats sum(cost) AS cost_usd by user | sort - cost_usd | head 15</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Top Users by Token Volume</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="user_usage" ai.vendor="$provider$" | rename ai.actor.email AS email, ai.usage.output_tokens AS out_tokens, ai.usage.input_tokens AS in_tokens | stats sum(out_tokens) AS output_tokens sum(in_tokens) AS input_tokens by email | fillnull value=0 output_tokens input_tokens | eval total_tokens=output_tokens+input_tokens | sort - total_tokens | head 15 | table email, output_tokens, input_tokens, total_tokens</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Spend Limit Utilization (≥80%)</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="spend_limit" ai.vendor="$provider$" | rename ai.actor.email AS email, ai.cost.limit_usd AS limit_usd, ai.cost.spend_usd AS spend_usd, ai.cost.utilization_pct AS utilization_pct, raw.limit_source_type AS limit_source, raw.period AS period | where utilization_pct&gt;=80 | table email, limit_usd, spend_usd, utilization_pct, limit_source, period | sort - utilization_pct</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>All Effective Spend Limits</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="spend_limit" ai.vendor="$provider$" | rename ai.actor.email AS email, ai.cost.limit_usd AS limit_usd, ai.cost.spend_usd AS spend_usd, ai.cost.utilization_pct AS utilization_pct, raw.limit_source_type AS limit_source, raw.period AS period | table email, limit_usd, spend_usd, utilization_pct, limit_source, period | sort - spend_usd | head 25</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Pending Spend Limit Increase Requests</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="spend_limit_request" raw.status="pending" ai.vendor="$provider$" | rename ai.actor.email AS email, raw.status AS status, ai.cost.requested_limit_usd AS requested_limit_usd, ai.cost.spend_usd AS period_spend_usd, raw.id AS request_id | table _time, email, status, requested_limit_usd, period_spend_usd, request_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

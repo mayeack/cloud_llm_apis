@@ -39,7 +39,7 @@
       <title>Top Event Types</title>
       <table>
         <search>
-          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" | stats count by event_type | sort - count | head 15</query>
+          <query>`anthropic_claude_index` sourcetype="anthropic:compliance:activity" | stats count by ai.event_type | sort - count | head 15</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>

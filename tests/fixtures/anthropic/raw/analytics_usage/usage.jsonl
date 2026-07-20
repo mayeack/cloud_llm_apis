@@ -1,0 +1,5 @@
+{"starting_at": "2026-07-12T00:00:00Z", "bucket_width": "1d", "product": "chat", "model": "claude-sonnet-4-5", "output_tokens": 1100, "uncached_input_tokens": 5100, "cache_read_input_tokens": 100, "cache_creation_input_tokens": 50}
+{"starting_at": "2026-07-12T00:00:00Z", "bucket_width": "1d", "product": "claude_code", "model": "claude-opus-4-5", "output_tokens": 2100, "uncached_input_tokens": 8000, "cache_read_input_tokens": 100, "cache_creation_input_tokens": 50}
+{"starting_at": "2026-07-13T00:00:00Z", "bucket_width": "1d", "product": "chat", "model": "claude-sonnet-4-5", "output_tokens": 1400, "uncached_input_tokens": 6000, "cache_read_input_tokens": 200, "cache_creation_input_tokens": 80}
+{"starting_at": "2026-07-13T00:00:00Z", "bucket_width": "1d", "product": "claude_code", "model": "claude-opus-4-5", "output_tokens": 2600, "uncached_input_tokens": 9500, "cache_read_input_tokens": 300, "cache_creation_input_tokens": 60}
+{"starting_at": "2026-07-13T00:00:00Z", "bucket_width": "1d", "product": "cowork", "model": "claude-sonnet-4-5", "output_tokens": 500, "uncached_input_tokens": 1500, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}

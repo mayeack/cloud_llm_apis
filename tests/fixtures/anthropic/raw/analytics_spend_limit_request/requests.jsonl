@@ -1,0 +1,1 @@
+{"id": "slr_01TESTREQ", "status": "pending", "created_at": "2026-07-16T19:16:51Z", "email": "dave@example.test", "user_id": "user_01DAVE", "actor": {"email_address": "dave@example.test", "user_id": "user_01DAVE"}, "spend_summary": {"amount": "50000.000000", "period_to_date_spend": "30000.000000"}}

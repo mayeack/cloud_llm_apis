@@ -1,0 +1,200 @@
+<form version="1.1" theme="dark">
+  <label>AI Governance - Overview</label>
+  <description>Directory, project, conversation, and data-movement governance across AI providers. Index scope comes from the ai_governance_index macro.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time Range</label>
+      <default>
+        <earliest>-14d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="provider" searchWhenChanged="true">
+      <label>Provider</label>
+      <choice value="*">All providers</choice>
+      <default>*</default>
+      <fieldForLabel>vendor</fieldForLabel>
+      <fieldForValue>vendor</fieldForValue>
+      <search>
+        <query>`ai_governance_index` | stats count by ai.vendor | rename ai.vendor AS vendor | fields vendor</query>
+        <earliest>-7d@d</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Synced Users</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="user" ai.vendor="$provider$" | rename ai.actor.id AS user_id | stats dc(user_id) AS users</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Synced Groups</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="group" ai.vendor="$provider$" | rename ai.resource.id AS group_id | stats dc(group_id) AS groups</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Project Events</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.resource.type="project" ai.vendor="$provider$" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>User Invites</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.event_type=org_user_invite_* ai.vendor="$provider$" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Data Exports</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.event_category="data_export" ai.vendor="$provider$" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Project Lifecycle Events</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.resource.type="project" ai.vendor="$provider$" | rename ai.event_type AS event_type | timechart count by event_type</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Project Visibility Changes</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.event_type="project_visibility_changed" ai.vendor="$provider$" | rename ai.actor.email AS actor, ai.resource.id AS project_id, raw.visibility AS visibility | table _time, actor, project_id, visibility | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>User Invite Lifecycle</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.event_type=org_user_invite_* ai.vendor="$provider$" | rename ai.event_type AS event_type | stats count by event_type | sort event_type</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">bar</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Data Export Activity</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.event_category="data_export" ai.vendor="$provider$" | rename ai.event_type AS event_type, ai.actor.email AS actor, ai.org.id AS org_id | table _time, event_type, actor, org_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Conversation Events</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.resource.type="chat" ai.vendor="$provider$" | rename ai.event_type AS event_type, ai.actor.email AS actor | stats count by event_type, actor | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>File Uploads</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.event_category="content_access" ai.resource.type="file" ai.event_type=*_uploaded ai.vendor="$provider$" | rename ai.actor.email AS actor, ai.resource.id AS file_id | stats count values(file_id) AS files by actor | sort - count | head 20</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Directory Snapshot (Users)</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="user" ai.vendor="$provider$" | rename ai.actor.email AS email, raw.full_name AS full_name, ai.actor.role AS role, ai.actor.id AS user_id | sort - _time | dedup user_id | table email, full_name, role, user_id</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Directory Snapshot (Groups)</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="group" ai.vendor="$provider$" | rename raw.name AS name, raw.description AS description, raw.source_type AS source_type, raw.roles AS roles, ai.resource.id AS group_id | sort - _time | dedup group_id | table name, description, source_type, roles, group_id</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Memory Governance</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.resource.type="memory" ai.vendor="$provider$" | rename ai.event_type AS event_type, ai.actor.email AS actor | stats count by event_type, actor | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Invite Link Hygiene</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.event_type=org_invite_link_* ai.vendor="$provider$" | rename ai.event_type AS event_type, ai.actor.email AS actor | table _time, event_type, actor | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>MCP &amp; Integrations Activity</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.record="activity" ai.resource.type="integration" ai.vendor="$provider$" | rename ai.event_type AS event_type, ai.actor.email AS actor | stats count by event_type, actor | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

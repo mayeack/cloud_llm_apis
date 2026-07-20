@@ -3,9 +3,6 @@
     <view name="inputs"/>
     <view name="configuration" default="true"/>
     <view name="dashboard"/>
-    <view name="claude_security_audit"/>
-    <view name="claude_ai_governance"/>
-    <view name="claude_tokenomics"/>
     <view name="claude_code_mcp"/>
     <view name="claude_ta_health"/>
     <view name="search"/>

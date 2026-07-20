@@ -23,25 +23,16 @@ access = read : [ * ], write : [ admin, sc_admin, power ]
 [admin/TA-anthropic_claude_enterprise_analytics_reports]
 access = read : [ * ], write : [ admin, sc_admin, power ]
 
-[views/claude_security_audit]
-export = system
-
-[views/claude_ai_governance]
-export = system
-
-[views/claude_tokenomics]
-export = system
-
 [views]
 export = system
 
+[views/claude_code_mcp]
+export = system
+
+[views/claude_ta_health]
+export = system
+
 [savedsearches]
-export = system
-
-[eventtypes]
-export = system
-
-[tags]
 export = system
 
 [props]
@@ -51,10 +42,4 @@ export = system
 export = system
 
 [macros]
-export = system
-
-[views/claude_code_mcp]
-export = system
-
-[views/claude_ta_health]
 export = system

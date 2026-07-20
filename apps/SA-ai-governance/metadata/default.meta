@@ -1,0 +1,27 @@
+# Shared AI-governance knowledge objects: readable everywhere, admin-writable.
+
+[]
+owner = admin
+access = read : [ * ], write : [ admin, sc_admin ]
+export = system
+
+[views/ai_governance_overview]
+export = system
+
+[views/ai_governance_security_audit]
+export = system
+
+[views/ai_governance_tokenomics]
+export = system
+
+[views]
+export = system
+
+[macros]
+export = system
+
+[savedsearches]
+export = system
+
+[datamodels]
+export = system

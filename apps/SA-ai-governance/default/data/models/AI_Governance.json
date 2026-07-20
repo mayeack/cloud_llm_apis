@@ -1,0 +1,64 @@
+{
+    "modelName": "AI_Governance",
+    "displayName": "AI Governance",
+    "description": "Cloud-LLM governance events normalized to the ai.* contract (docs/ai-schema.md). Root constraint names the index directly because data model constraints cannot expand macros — keep in sync with the ai_governance_index macro.",
+    "objectSummary": {
+        "Event-Based": 1,
+        "Transaction-Based": 0,
+        "Search-Based": 0
+    },
+    "objects": [
+        {
+            "objectName": "AI_Events",
+            "displayName": "AI Events",
+            "parentName": "BaseEvent",
+            "comment": "",
+            "fields": [
+                {"fieldName": "_time", "owner": "AI_Events", "type": "timestamp", "required": true, "multivalue": false, "hidden": false, "editable": true, "displayName": "_time", "comment": ""},
+                {"fieldName": "host", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "host", "comment": ""},
+                {"fieldName": "source", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "source", "comment": ""},
+                {"fieldName": "sourcetype", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "sourcetype", "comment": ""},
+                {"fieldName": "ai.schema_version", "owner": "AI_Events", "type": "string", "required": true, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.schema_version", "comment": ""},
+                {"fieldName": "ai.vendor", "owner": "AI_Events", "type": "string", "required": true, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.vendor", "comment": ""},
+                {"fieldName": "ai.product", "owner": "AI_Events", "type": "string", "required": true, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.product", "comment": ""},
+                {"fieldName": "ai.record", "owner": "AI_Events", "type": "string", "required": true, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.record", "comment": ""},
+                {"fieldName": "ai.event_category", "owner": "AI_Events", "type": "string", "required": true, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.event_category", "comment": ""},
+                {"fieldName": "ai.event_type", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.event_type", "comment": ""},
+                {"fieldName": "ai.event_id", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.event_id", "comment": ""},
+                {"fieldName": "ai.action", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.action", "comment": ""},
+                {"fieldName": "ai.outcome", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.outcome", "comment": ""},
+                {"fieldName": "ai.model", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.model", "comment": ""},
+                {"fieldName": "ai.actor.email", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.actor.email", "comment": ""},
+                {"fieldName": "ai.actor.id", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.actor.id", "comment": ""},
+                {"fieldName": "ai.actor.type", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.actor.type", "comment": ""},
+                {"fieldName": "ai.actor.ip", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.actor.ip", "comment": ""},
+                {"fieldName": "ai.actor.user_agent", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.actor.user_agent", "comment": ""},
+                {"fieldName": "ai.actor.role", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.actor.role", "comment": ""},
+                {"fieldName": "ai.org.id", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.org.id", "comment": ""},
+                {"fieldName": "ai.org.uuid", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.org.uuid", "comment": ""},
+                {"fieldName": "ai.resource.type", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.resource.type", "comment": ""},
+                {"fieldName": "ai.resource.id", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.resource.id", "comment": ""},
+                {"fieldName": "ai.usage.input_tokens", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.usage.input_tokens", "comment": ""},
+                {"fieldName": "ai.usage.output_tokens", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.usage.output_tokens", "comment": ""},
+                {"fieldName": "ai.usage.total_tokens", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.usage.total_tokens", "comment": ""},
+                {"fieldName": "ai.cost.amount_usd", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.cost.amount_usd", "comment": ""},
+                {"fieldName": "ai.cost.currency", "owner": "AI_Events", "type": "string", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.cost.currency", "comment": ""},
+                {"fieldName": "ai.cost.limit_usd", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.cost.limit_usd", "comment": ""},
+                {"fieldName": "ai.cost.spend_usd", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.cost.spend_usd", "comment": ""},
+                {"fieldName": "ai.cost.utilization_pct", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.cost.utilization_pct", "comment": ""},
+                {"fieldName": "ai.cost.requested_limit_usd", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.cost.requested_limit_usd", "comment": ""},
+                {"fieldName": "ai.adoption.daily_active_users", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.adoption.daily_active_users", "comment": ""},
+                {"fieldName": "ai.adoption.weekly_active_users", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.adoption.weekly_active_users", "comment": ""},
+                {"fieldName": "ai.adoption.monthly_active_users", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.adoption.monthly_active_users", "comment": ""},
+                {"fieldName": "ai.adoption.seats", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.adoption.seats", "comment": ""},
+                {"fieldName": "ai.adoption.pending_invites", "owner": "AI_Events", "type": "number", "required": false, "multivalue": false, "hidden": false, "editable": true, "displayName": "ai.adoption.pending_invites", "comment": ""}
+            ],
+            "calculations": [],
+            "constraints": [
+                {"search": "index=cloud_llm_apis", "owner": "AI_Events"}
+            ],
+            "lineage": "AI_Events"
+        }
+    ],
+    "objectNameList": ["AI_Events"]
+}

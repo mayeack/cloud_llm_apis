@@ -1,0 +1,224 @@
+<form version="1.1" theme="dark">
+  <label>AI Governance - Security Audit</label>
+  <description>Authentication, identity, access-control, and data-movement auditing from provider AI audit feeds. Index scope comes from the ai_governance_index macro.</description>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time Range</label>
+      <default>
+        <earliest>-7d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="provider" searchWhenChanged="true">
+      <label>Provider</label>
+      <choice value="*">All providers</choice>
+      <default>*</default>
+      <fieldForLabel>vendor</fieldForLabel>
+      <fieldForValue>vendor</fieldForValue>
+      <search>
+        <query>`ai_governance_index` | stats count by ai.vendor | rename ai.vendor AS vendor | fields vendor</query>
+        <earliest>-7d@d</earliest>
+        <latest>now</latest>
+      </search>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Sign-in Events</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="authentication" ai.action="login" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Sign-out Events</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="authentication" ai.action="logout" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>SSO / Identity Changes</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="admin_change" ai.resource.type="identity" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Data Exports</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="data_export" ai.action="export" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>File Uploads</title>
+      <single>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="content_access" ai.resource.type="file" ai.action="create" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Authentication Timeline</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="authentication" | rename ai.event_type AS event_type | timechart count by event_type</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Sign-in Volume by Method</title>
+      <chart>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="authentication" ai.action="login" | rename ai.event_type AS method | stats count by method | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Sign-ins by User and Source IP</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="authentication" ai.action="login" | rename ai.actor.email AS user, ai.actor.ip AS src_ip | stats count earliest(_time) AS first_seen latest(_time) AS last_seen by user, src_ip | convert ctime(first_seen) ctime(last_seen) | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Multi-IP Sign-ins</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="authentication" ai.action="login" | rename ai.actor.email AS user, ai.actor.ip AS src_ip | stats dc(src_ip) AS distinct_ips values(src_ip) AS ips earliest(_time) AS first_seen latest(_time) AS last_seen by user | where distinct_ips &gt; 2 | convert ctime(first_seen) ctime(last_seen) | sort - distinct_ips</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>SSO and Identity Admin Changes</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="admin_change" ai.resource.type="identity" | rename ai.event_type AS event_type, ai.actor.email AS user, ai.org.id AS organization_id | table _time, event_type, user, organization_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Privileged User Lifecycle</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="admin_change" ai.resource.type IN ("user", "group") | rename ai.event_type AS event_type, ai.actor.email AS user, ai.org.id AS organization_id | table _time, event_type, user, organization_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>API Key Lifecycle</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="admin_change" ai.resource.type="api_key" | rename ai.event_type AS event_type, ai.actor.email AS user, ai.actor.type AS actor_type | table _time, event_type, user, actor_type | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Access Failures</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.outcome="failure" | rename ai.event_type AS event_type, ai.actor.email AS user | stats count by event_type, user | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Configuration and Project Changes</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="admin_change" | rename ai.event_type AS event_type, ai.actor.email AS user, ai.resource.type AS resource_type, ai.resource.id AS resource_id, ai.org.id AS organization_id | table _time, event_type, user, resource_type, resource_id, organization_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Audit API Consumers</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="data_export" ai.action="read" | rename ai.actor.user_agent AS user_agent, ai.actor.ip AS src_ip | stats count dc(src_ip) AS ips values(src_ip) AS ip_list earliest(_time) AS first_seen latest(_time) AS last_seen by user_agent | convert ctime(first_seen) ctime(last_seen) | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Data Export Detail</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="data_export" ai.action="export" | rename ai.event_type AS event_type, ai.actor.email AS user, ai.org.id AS organization_id | table _time, event_type, user, organization_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>File Upload Activity</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.event_category="content_access" ai.resource.type="file" ai.action="create" | rename ai.event_type AS event_type, ai.actor.email AS user, ai.resource.id AS file_id | table _time, event_type, user, file_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Directory Sync (SCIM) Activity</title>
+      <table>
+        <search>
+          <query>`ai_governance_index` ai.vendor="$provider$" ai.record="activity" ai.actor.type="*scim*" | rename ai.event_type AS event_type | stats count by event_type | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>

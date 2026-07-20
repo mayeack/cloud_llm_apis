@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<nav>
+    <view name="ai_governance_overview" default="true"/>
+    <view name="ai_governance_security_audit"/>
+    <view name="ai_governance_tokenomics"/>
+    <view name="search"/>
+</nav>
