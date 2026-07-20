@@ -1,0 +1,200 @@
+{
+  "ai_governance_overview#00 Synced Users": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#01 Synced Groups": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#02 Project Events": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#03 User Invites": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#04 Data Exports": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#05 Project Lifecycle Events": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#06 Project Visibility Changes": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#07 User Invite Lifecycle": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#08 Data Export Activity": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#09 Conversation Events": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#10 File Uploads": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#11 Directory Snapshot (Users)": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#12 Directory Snapshot (Groups)": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#13 Memory Governance": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#14 Invite Link Hygiene": {
+    "min_rows": 1
+  },
+  "ai_governance_overview#15 MCP & Integrations Activity": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#00 Sign-in Events": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#01 Sign-out Events": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#02 SSO / Identity Changes": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#03 Data Exports": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#04 File Uploads": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#05 Authentication Timeline": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#06 Sign-in Volume by Method": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#07 Sign-ins by User and Source IP": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#08 Multi-IP Sign-ins": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#09 SSO and Identity Admin Changes": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#10 Privileged User Lifecycle": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#11 API Key Lifecycle": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#12 Access Failures": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#13 Configuration and Project Changes": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#14 Audit API Consumers": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#15 Data Export Detail": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#16 File Upload Activity": {
+    "min_rows": 1
+  },
+  "ai_governance_security_audit#17 Directory Sync (SCIM) Activity": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#00 Latest DAU": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#01 Latest Adoption Rate (%)": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#02 Total Spend (USD)": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#03 Total Output Tokens": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#04 Users Near Spend Limit (≥80%)": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#05 Daily Active Users": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#06 Seat Adoption Rate (%)": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#07 Token Usage by Product": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#08 Spend by Product (USD)": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#09 Daily Spend Trend (USD)": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#10 Token Volume Trend": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#11 Top Users by Cost": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#12 Top Users by Token Volume": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#13 Spend Limit Utilization (≥80%)": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#14 All Effective Spend Limits": {
+    "min_rows": 1
+  },
+  "ai_governance_tokenomics#15 Pending Spend Limit Increase Requests": {
+    "min_rows": 1
+  },
+  "claude_code_mcp#00 Claude Code Settings Changes": {
+    "min_rows": 1
+  },
+  "claude_code_mcp#01 MCP & Integration Events": {
+    "min_rows": 1
+  },
+  "claude_code_mcp#02 Claude Code Active Users": {
+    "min_rows": 1
+  },
+  "claude_code_mcp#03 Claude Code Spend (USD)": {
+    "min_rows": 1
+  },
+  "claude_code_mcp#04 Claude Code Tool Accept vs Reject": {
+    "min_rows": 1
+  },
+  "claude_code_mcp#05 MCP Connector Usage": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - Multiple sign-in IPs for same user": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - SSO configuration change": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - Data export started": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - Top cost users daily": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - API key created": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - Role or permission escalation": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - Chat access failure spike": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - New audit API consumer": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - Spend limit reached": {
+    "min_rows": 1
+  },
+  "savedsearch:AI Governance - Daily spend spike": {
+    "min_rows": 1
+  }
+}
