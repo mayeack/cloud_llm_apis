@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The ai.* contract — cloud-LLM governance event schema v1.0.0</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;max-width:940px;margin:2rem auto;padding:0 1rem;color:#1a1a1a;line-height:1.55}
+  h1{font-size:1.5rem;border-bottom:2px solid #CC785C;padding-bottom:.4rem}
+  h2{font-size:1.15rem;margin-top:1.9rem;color:#7a4a38}
+  h3{font-size:1rem;margin-top:1.3rem}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f5f2ef;border-radius:4px}
+  code{padding:.1em .35em;font-size:.9em}
+  pre{padding:.8rem;overflow-x:auto;font-size:.82em;line-height:1.45}
+  table{border-collapse:collapse;width:100%;font-size:.88em;margin:.8rem 0}
+  th,td{border:1px solid #ddd;padding:.45rem .6rem;text-align:left;vertical-align:top}
+  th{background:#f5f2ef}
+  .rule{background:#fff6ee;border-left:4px solid #CC785C;padding:.6rem .9rem;margin:.8rem 0}
+  ol li,ul li{margin:.25rem 0}
+  .ver{display:inline-block;background:#CC785C;color:#fff;border-radius:4px;padding:.05em .5em;font-size:.8em;vertical-align:middle}
+</style>
+</head>
+<body>
+<h1>The <code>ai.*</code> contract — cloud-LLM governance event schema <span class="ver">v1.0.0</span></h1>
+<p>Executable twin: <code>shared/ai_common/schema.py</code>. Every provider TA (Anthropic today; OpenAI, Google later)
+emits events in this shape at <strong>index time</strong>. The shared layer (<code>SA-ai-governance</code> dashboards, saved
+searches, the <code>AI_Governance</code> data model) queries <strong>only</strong> <code>ai.*</code> fields — never provider field names.
+Splunk's <code>KV_MODE&nbsp;=&nbsp;json</code> flattens the nested object into dotted search-time fields (<code>ai.vendor</code>, <code>ai.actor.email</code>, …).</p>
+<p>Versioning: semver. Adding optional fields or vocabulary values = minor. Renaming, removing, or changing meaning = major
+(coordinated SA + adapters release).</p>
+
+<h2>Event shape</h2>
+<pre>{
+  "ai": {
+    "time": "2026-07-16T19:16:51Z",
+    "schema_version": "1.0.0",
+    "vendor": "anthropic",
+    "product": "claude_enterprise",
+    "record": "activity",
+    "event_category": "authentication",
+    "event_type": "user_signed_in_sso",
+    "event_id": "activity_01ABC...",
+    "action": "login",
+    "outcome": "success",
+    "actor":    { "email": "alice@example.com", "id": "user_01...", "type": "user_actor",
+                  "ip": "10.0.0.1", "user_agent": "Mozilla/5.0 ..." },
+    "org":      { "id": "org_...", "uuid": "aaaaaaaa-..." },
+    "resource": { "type": "chat", "id": "chat_01..." }
+  },
+  "raw": { "...every provider-native field not consumed by an ai.* mapping, verbatim..." }
+}</pre>
+<div class="rule"><strong>Serialization rules (adapter obligations):</strong>
+<ol>
+<li><code>ai</code> is the <strong>first</strong> key of the event; <code>ai.time</code> the <strong>first</strong> key inside it (index-time timestamping reads it; fixtures rely on it).</li>
+<li><strong>Null keys are omitted, recursively.</strong> A field is present with a real value or absent — the literal string <code>"null"</code> must never be indexed.</li>
+<li>Unmapped provider fields are preserved under <code>raw.*</code> with native names and nesting. Mapped values live once, under <code>ai.*</code>.</li>
+<li>All timestamps are ISO&nbsp;8601 UTC; date-only provider values normalize to midnight UTC.</li>
+</ol></div>
+
+<h2>Envelope — required on every event (100% coverage)</h2>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>ai.time</code></td><td>Event time: provider event time; report-period start for aggregates; collection time for snapshots</td></tr>
+<tr><td><code>ai.schema_version</code></td><td>This contract's version, stamped by the adapter</td></tr>
+<tr><td><code>ai.vendor</code></td><td><code>anthropic</code> | <code>openai</code> | <code>google</code></td></tr>
+<tr><td><code>ai.product</code></td><td>Provider product line, e.g. <code>claude_enterprise</code> (constant per TA — never clobbered by provider dimensions; the Anthropic analytics API's own <code>product</code> column lands in <code>raw.product</code>)</td></tr>
+<tr><td><code>ai.record</code></td><td>Envelope kind — see vocabulary</td></tr>
+<tr><td><code>ai.event_category</code></td><td>Governance category — see vocabulary</td></tr>
+</table>
+
+<h3><code>ai.record</code> vocabulary</h3>
+<p><code>activity</code> (audit feed) · <code>user</code>/<code>organization</code>/<code>group</code> (directory snapshots) · <code>chat</code>/<code>file</code> (content/metadata fetches) ·
+<code>summary</code>/<code>usage</code>/<code>cost</code>/<code>user_usage</code>/<code>user_cost</code>/<code>user_activity</code> (analytics reports) · <code>spend_limit</code>/<code>spend_limit_request</code> (spend controls).</p>
+
+<h3><code>ai.event_category</code> vocabulary and assignment</h3>
+<p><code>authentication</code> · <code>admin_change</code> · <code>content_access</code> · <code>usage</code> · <code>cost</code> · <code>policy</code> · <code>data_export</code></p>
+<p><strong><code>activity</code> records</strong> are classified from <code>ai.event_type</code> by <strong>ordered first-match-wins glob rules</strong> (fnmatch, case-sensitive),
+shipped as data in each TA (<code>bin/event_categories.json</code>) so new provider event types are a data-only patch. Precedence order is contract semantics:</p>
+<ol>
+<li>authentication events (<code>user_signed_in_*</code>, <code>user_signed_out</code>, <code>sso_login_initiated</code>, …)</li>
+<li>data-export events (<code>compliance_api_accessed</code>, <code>*data_export*</code>)</li>
+<li>read-only access (<code>*_viewed</code>, <code>*_accessed</code>, <code>*_listed</code> → <code>content_access</code>)</li>
+<li>content families (<code>*file_*</code>, chat/conversation access → <code>content_access</code>)</li>
+<li>admin-change families (org/project/rbac/group/memory/mcp/integration/extension/billing prefixes, <code>*api_key_*</code>, <code>*_role_updated</code>, exact renames/deletes → <code>admin_change</code>)</li>
+<li>default → <code>usage</code></li>
+</ol>
+<p><strong>All other records</strong> get a fixed category per <code>ai.record</code>:</p>
+<table>
+<tr><th><code>ai.record</code></th><th>category</th></tr>
+<tr><td><code>user</code>, <code>organization</code>, <code>group</code></td><td><code>policy</code></td></tr>
+<tr><td><code>chat</code>, <code>file</code></td><td><code>content_access</code></td></tr>
+<tr><td><code>summary</code>, <code>usage</code>, <code>user_usage</code>, <code>user_activity</code></td><td><code>usage</code></td></tr>
+<tr><td><code>cost</code>, <code>user_cost</code>, <code>spend_limit</code></td><td><code>cost</code></td></tr>
+<tr><td><code>spend_limit_request</code></td><td><code>policy</code></td></tr>
+</table>
+
+<h2>Audit-feed fields (required on <code>record=activity</code>)</h2>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>ai.event_type</code></td><td>Provider-native event name, verbatim</td></tr>
+<tr><td><code>ai.event_id</code></td><td>Provider-native unique id</td></tr>
+<tr><td><code>ai.action</code></td><td>Normalized verb: <code>login</code> | <code>logout</code> | <code>login_attempt</code> | <code>create</code> | <code>update</code> | <code>delete</code> | <code>read</code> | <code>export</code> | <code>request</code> | <code>unknown</code></td></tr>
+<tr><td><code>ai.outcome</code></td><td><code>success</code> | <code>failure</code> (<code>*_failed</code>/<code>*_denied</code>/<code>*_rejected</code>/<code>*_blocked</code> → failure)</td></tr>
+</table>
+
+<h2>Identity and scope</h2>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td><code>ai.actor.email</code>/<code>.id</code>/<code>.type</code>/<code>.ip</code>/<code>.user_agent</code></td><td>Acting identity (activity, per-user reports, spend limits). Actor-union extras stay in <code>raw.*</code></td></tr>
+<tr><td><code>ai.org.id</code>/<code>.uuid</code></td><td>Tenancy</td></tr>
+<tr><td><code>ai.resource.type</code></td><td><code>org</code> | <code>project</code> | <code>user</code> | <code>group</code> | <code>identity</code> | <code>api_key</code> | <code>chat</code> | <code>file</code> | <code>memory</code> | <code>integration</code> | <code>other</code></td></tr>
+<tr><td><code>ai.resource.id</code></td><td>Provider id of the touched object when determinable</td></tr>
+</table>
+
+<h2>Measures (report records)</h2>
+<table>
+<tr><th>Field</th><th>On records</th><th>Meaning</th></tr>
+<tr><td><code>ai.model</code></td><td><code>usage</code></td><td>Model id (omitted for <code>all</code> rollups)</td></tr>
+<tr><td><code>ai.usage.input_tokens</code></td><td><code>usage</code>, <code>user_usage</code></td><td>Total input tokens (Anthropic: uncached + cache_read + cache_creation; splits stay in <code>raw.*</code>)</td></tr>
+<tr><td><code>ai.usage.output_tokens</code> / <code>.total_tokens</code></td><td><code>usage</code>, <code>user_usage</code></td><td>Output / input+output</td></tr>
+<tr><td><code>ai.cost.amount_usd</code></td><td><code>cost</code>, <code>user_cost</code></td><td>USD cost — converted <strong>once, at the adapter</strong></td></tr>
+<tr><td><code>ai.cost.currency</code></td><td>cost records</td><td>ISO currency (<code>USD</code>)</td></tr>
+<tr><td><code>ai.cost.limit_usd</code> / <code>.spend_usd</code> / <code>.utilization_pct</code></td><td><code>spend_limit</code></td><td>Effective limit, period spend, utilization (0-limit seats = 100.0)</td></tr>
+<tr><td><code>ai.cost.requested_limit_usd</code></td><td><code>spend_limit_request</code></td><td>Requested new limit (period spend in <code>.spend_usd</code>)</td></tr>
+<tr><td><code>ai.adoption.daily_active_users</code> / <code>.weekly_active_users</code> / <code>.monthly_active_users</code></td><td><code>summary</code></td><td>Active-user counts</td></tr>
+<tr><td><code>ai.adoption.seats</code> / <code>.pending_invites</code></td><td><code>summary</code></td><td>Licensing state</td></tr>
+<tr><td><code>ai.adoption.daily_rate</code> / <code>.weekly_rate</code> / <code>.monthly_rate</code></td><td><code>summary</code></td><td>Adoption percentages as reported</td></tr>
+</table>
+
+<h2>Anthropic reference mapping (informative)</h2>
+<p>Activity: <code>id→ai.event_id</code>, <code>created_at→ai.time</code>, <code>type→ai.event_type</code>,
+<code>actor.{email_address,user_id,type,ip_address,user_agent}→ai.actor.*</code>, <code>organization_id/uuid→ai.org.*</code>,
+<code>claude_project_id|claude_chat_id|file_id→ai.resource.id</code> (type from event family). Detail fields → <code>raw.*</code>.<br>
+Reports: <code>starting_at|date→ai.time</code>, <code>email/user_id→ai.actor.*</code>, <code>total_cost_usd→ai.cost.amount_usd</code>,
+<code>spend_limit_usd→ai.cost.limit_usd</code>, <code>period_spend_usd→ai.cost.spend_usd</code>, token counters → <code>ai.usage.*</code>,
+<code>daily_active_user_count→ai.adoption.daily_active_users</code>, etc.</p>
+
+<h2>Conformance</h2>
+<p>An adapter is conformant when <code>tests/test_adapter_conformance.py</code> passes over its raw fixtures: required coverage,
+closed vocabularies, no nulls/<code>"null"</code> anywhere, USD conversion exactness, <code>ai</code>-first/<code>time</code>-first key order.
+The Anthropic fixtures under <code>tests/fixtures/anthropic/</code> are the reference corpus.</p>
+</body>
+</html>
