@@ -1,19 +1,31 @@
 # Build products
 dist/
 build_out/
+# ucc-gen default output dir
+output/
+# Packaged build artifacts (source is tracked in-repo)
+*.tar.gz
 
 # Splunk instance state — never tracked (holds credentials, configured inputs, enables)
 local/
+local.meta
 passwords.conf
+
+# Environment / secrets
+.env
+*.pem
+*.key
 
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
 .venv/
+
+# Presentations / docs (not part of the add-ons)
+*.pptx
 
 # macOS
 .DS_Store
-local.meta
-
-# ucc-gen default output dir
-output/

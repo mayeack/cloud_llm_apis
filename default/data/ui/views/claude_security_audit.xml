@@ -1,0 +1,173 @@
+<form version="1.1" theme="dark">
+  <label>Claude Enterprise - Security Audit</label>
+  <fieldset submitButton="false">
+    <input type="time" token="time">
+      <label>Time Range</label>
+      <default>
+        <earliest>-7d@d</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="dropdown" token="index">
+      <label>Index</label>
+      <choice value="*">All indexes</choice>
+      <choice value="claude_compliance">claude_compliance</choice>
+      <default>claude_compliance</default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Sign-in Events</title>
+      <single>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_auth_events event_type=user_signed_in_* | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Sign-out Events</title>
+      <single>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type="user_signed_out" | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>SSO / Identity Changes</title>
+      <single>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" (event_type=org_sso_* OR event_type=org_jit_* OR event_type=org_domain_*) | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>Data Exports</title>
+      <single>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type=org_data_export_* | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+    <panel>
+      <title>File Uploads</title>
+      <single>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_file_events | stats count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Authentication Timeline</title>
+      <chart>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_auth_events | timechart count by event_type</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Sign-in Volume by Method</title>
+      <chart>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_auth_events event_type=user_signed_in_* | stats count by event_type | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+        <option name="charting.chart">pie</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Sign-ins by User and Source IP</title>
+      <table>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_auth_events event_type=user_signed_in_* | stats count earliest(_time) AS first_seen latest(_time) AS last_seen by actor_email, actor_ip_address | sort - count</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Multi-IP Sign-ins</title>
+      <table>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_auth_events event_type=user_signed_in_* | stats dc(actor_ip_address) AS distinct_ips values(actor_ip_address) AS ips earliest(_time) AS first_seen latest(_time) AS last_seen by actor_email | where distinct_ips &gt; 3 | sort - distinct_ips</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>SSO and Identity Admin Changes</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" (event_type=org_sso_* OR event_type=org_jit_* OR event_type=org_domain_*) | table _time, event_type, actor_email, organization_id</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Privileged User Lifecycle</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" (event_type=org_user_deleted OR event_type=user_name_changed OR event_type=org_user_invite_*) | table _time, event_type, actor_email, organization_id</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Configuration and Project Changes</title>
+      <table>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_change_events | table _time, event_type, actor_email, claude_project_id, claude_chat_id, organization_id</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+    <panel>
+      <title>Data Export Detail</title>
+      <table>
+        <search>
+          <query>index=$index$ sourcetype="anthropic:compliance:activity" event_type=org_data_export_* | table _time, event_type, actor_email, organization_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>File Upload Activity</title>
+      <table>
+        <search>
+          <query>index=$index$ eventtype=anthropic_claude_file_events | table _time, actor_email, file_id, claude_project_id | sort - _time</query>
+          <earliest>$time.earliest$</earliest>
+          <latest>$time.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>
