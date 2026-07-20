@@ -1,0 +1,12 @@
+# Build-time only — NOT shipped in any app.
+# Runtime dependencies live in apps/<TA>/package/lib/requirements.txt and are
+# vendored into the built add-on by ucc-gen.
+#
+# Pinned: ucc-gen output must stay byte-reproducible against the ledger in
+# docs/ucc-classification.md. Bumping this can change generated files, so
+# re-run the round-trip diff when you do.
+splunk-add-on-ucc-framework==6.5.1
+
+# Optional: test_adapter_conformance.py also runs standalone without pytest
+# (python3 tests/test_adapter_conformance.py).
+pytest>=7.0

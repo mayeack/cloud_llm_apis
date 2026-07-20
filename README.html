@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Governance for Splunk</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;max-width:940px;margin:2rem auto;padding:0 1rem;color:#1a1a1a;line-height:1.6}
+  h1{font-size:1.6rem;border-bottom:2px solid #CC785C;padding-bottom:.4rem;margin-bottom:.3rem}
+  h2{font-size:1.2rem;margin-top:2rem;color:#7a4a38;border-bottom:1px solid #eee;padding-bottom:.25rem}
+  h3{font-size:1rem;margin-top:1.4rem}
+  code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f5f2ef;border-radius:4px}
+  code{padding:.1em .35em;font-size:.9em}
+  pre{padding:.85rem;overflow-x:auto;font-size:.83em;line-height:1.5}
+  pre code{background:none;padding:0}
+  table{border-collapse:collapse;width:100%;font-size:.9em;margin:.9rem 0}
+  th,td{border:1px solid #ddd;padding:.5rem .6rem;text-align:left;vertical-align:top}
+  th{background:#f5f2ef}
+  blockquote{border-left:4px solid #CC785C;background:#fff6ee;margin:1rem 0;padding:.7rem 1rem}
+  blockquote p{margin:.4rem 0}
+  a{color:#a8543a}
+  ol li,ul li{margin:.3rem 0}
+  .lede{font-size:1.02em;color:#333}
+</style>
+</head>
+<body>
+<h1>AI Governance for Splunk</h1>
+<p class="lede">Splunk as the control plane for cloud-LLM governance — security auditing, adoption, and cost across
+<strong>multiple AI providers</strong>. Events from every provider are normalized at index time to one versioned
+contract (<code>ai.*</code>), so the dashboards, detections, and data model are written once and work for whichever
+providers you install.</p>
+<p>Anthropic Claude Enterprise ships today as the reference adapter. Adding OpenAI or Gemini means writing an adapter
+and a config page — <strong>no changes to the shared layer</strong>.</p>
+
+<h2>The apps</h2>
+<p>Three separately packaged apps, because they deploy to three different tiers.</p>
+<table>
+<tr><th>App</th><th>Version</th><th>Install on</th><th>What it is</th></tr>
+<tr><td><code>TA-anthropic_claude_enterprise</code></td><td>2.0.0</td><td>IDM / heavy forwarder, <strong>and</strong> search heads</td><td>Collection add-on (UCC-built): config UI, 4 modular inputs, the Anthropic → <code>ai.*</code> adapter, the 14 <code>anthropic:*</code> sourcetypes, and two Claude-specific dashboards</td></tr>
+<tr><td><code>SA-ai-governance</code></td><td>1.0.0</td><td>Search heads</td><td>The shared, <strong>provider-neutral</strong> layer: 3 dashboards, 10 detections, the <code>ai_governance_index</code> macro, and the accelerated <code>AI_Governance</code> data model</td></tr>
+<tr><td><code>TA-ai-governance-indexes</code></td><td>1.0.0</td><td>Indexers</td><td><code>indexes.conf</code> only — defines <code>cloud_llm_apis</code></td></tr>
+</table>
+<p>Inputs are disabled on search heads; the TA is installed there for its search-time knowledge (sourcetype props).
+Keeping <code>indexes.conf</code> in its own app leaves the other two Splunk Cloud–vettable.</p>
+
+<h3>Naming rule</h3>
+<p>Anything in the shared layer is provider-neutral — <code>ai_governance_*</code> objects, "AI Governance - *" saved
+searches. Provider names are reserved for genuinely provider-specific artifacts, which live in that provider's TA (its
+sourcetypes, its Claude Code / MCP dashboard, its ops view). A build check enforces it:
+<code>grep -icE 'claude|anthropic'</code> over the packaged shared apps must return <strong>0</strong>.</p>
+<p>Provider identity travels as <em>values</em> in neutral fields — <code>ai.vendor="anthropic"</code> — never as field
+or object names.</p>
+
+<h2>Architecture</h2>
+<pre><code>provider API → TA adapter → ai.* + raw.*  →  index=cloud_llm_apis  →  SA-ai-governance
+               (index time)                                           (dashboards, alerts,
+                                                                       AI_Governance model)</code></pre>
+<p>Each event is <code>{"ai": {…contract…}, "raw": {…provider-native, verbatim…}}</code>, flattened by
+<code>KV_MODE=json</code> into dotted search-time fields (<code>ai.vendor</code>, <code>ai.actor.email</code>,
+<code>ai.cost.amount_usd</code>). Nothing is lost: fields the contract does not model are preserved under
+<code>raw.*</code>.</p>
+<p>The full contract — field list, the closed <code>ai.event_category</code> vocabulary (<code>authentication</code>,
+<code>admin_change</code>, <code>content_access</code>, <code>usage</code>, <code>cost</code>, <code>policy</code>,
+<code>data_export</code>), classification precedence, and adapter obligations — is
+<strong><a href="docs/ai-schema.md">docs/ai-schema.md</a></strong>, with an executable twin at
+<code>shared/ai_common/schema.py</code>. Treat it as the expensive-to-change artifact: three adapters and an accelerated
+data model depend on it.</p>
+<p>Two things the adapter owns so SPL never has to:</p>
+<ul>
+<li><strong>Nulls are omitted recursively.</strong> No field ever indexes as the literal string <code>"null"</code>.</li>
+<li><strong>Money is converted once.</strong> Provider cents become <code>ai.cost.amount_usd</code> at the adapter, so no
+<code>coalesce(..., tonumber(amount)/100)</code> fallbacks in panels.</li>
+</ul>
+<p>Event classification is <strong>data, not code</strong>: <code>apps/&lt;TA&gt;/package/bin/event_categories.json</code>
+holds ordered first-match-wins glob rules. A new provider event type is a data-only patch release.</p>
+
+<h2>Layout</h2>
+<pre><code>apps/
+  TA-anthropic_claude_enterprise/   globalConfig.json + package/  (UCC source, not build output)
+  SA-ai-governance/                 plain app, copied verbatim at build
+  TA-ai-governance-indexes/         plain app, copied verbatim at build
+shared/ai_common/                   schema, adapter base, rules engine, input utils, checkpointing
+docs/                               ai-schema.md (the contract) · ucc-classification.md (build ledger)
+build/                              build.sh · deploy.sh
+tests/                              fixtures, conformance suite, regression runner, harness scripts
+dist/ · build_out/                  build products (gitignored)</code></pre>
+<p><code>shared/ai_common/</code> is copied into each TA's <code>bin/</code> at build time rather than imported across
+apps — Splunk apps cannot reliably import each other's Python, so each TA stays runtime-self-contained with one source of
+truth in git.</p>
+
+<h2>Build and deploy</h2>
+<pre><code>python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+
+build/build.sh                 # ucc-gen the TA, inject ai_common, package all 3 to dist/
+build/build.sh --no-dist       # build only, skip tarballs
+
+build/deploy.sh --dry-run      # always look first
+build/deploy.sh --restart      # rsync to $SPLUNK_HOME/etc/apps (default /opt/splunk104), restart
+build/deploy.sh --refresh      # KO-only changes: deploy, then print the /debug/refresh URL</code></pre>
+<blockquote>
+<p><strong>The repo is the source of truth.</strong> Apps under <code>etc/apps/</code> are build artifacts — never
+hand-edit their <code>default/</code>. The TA is regenerated by <code>ucc-gen</code> from <code>package/</code>, and the
+next build silently overwrites anything edited in a generated path.
+<a href="docs/ucc-classification.md">docs/ucc-classification.md</a> records exactly which files are generated versus
+hand-authored.</p>
+</blockquote>
+<p><code>deploy.sh</code> excludes <code>local/</code> and <code>local.meta</code>, which is load-bearing: that is where
+instance state lives — credentials, configured inputs, alert enables, and the test harness. It survives every deploy.
+Never add <code>--delete-excluded</code>.</p>
+
+<h2>Tests</h2>
+<p>Conformance runs anywhere, no Splunk required. It is the contract test every provider adapter must pass:</p>
+<pre><code>python3 tests/test_adapter_conformance.py      # or: pytest tests/</code></pre>
+<p>It asserts each adapter output byte-matches its committed oracle (which pins key order), required fields are present,
+vocabularies are closed, no nulls survive, and USD conversion is exact. Regenerate oracles after an intentional adapter
+change with <code>tests/generate_fixtures.py</code> (<code>--check</code> fails if they are stale).</p>
+<p>The end-to-end suite needs a dev Splunk. There is <strong>no test app</strong> — the harness writes into the main apps'
+<code>local/</code> layer, inside <code># BEGIN/END ai-governance-harness</code> markers:</p>
+<pre><code>tests/setup_harness.sh                          # test index + 14 fixture monitors (restart once)
+RUN_ID=$(tests/load_fixtures.sh | tail -1)      # spool fixtures, stamped with a fresh run id
+export SPLUNK_TOKEN=…                           # or SPLUNK_USERNAME / SPLUNK_PASSWORD
+tests/run_regression.py --run-id "$RUN_ID"      # every panel + saved search, run-scoped
+tests/teardown_harness.sh                       # remove harness config and spool</code></pre>
+<p><code>run_regression.py</code> extracts every dashboard panel query and saved search, repoints the index macros at the
+test index, and asserts against <code>tests/expected.json</code>. It exits <strong>2</strong> on a coverage gap — a panel
+with no expectation is a failure, not a pass.</p>
+
+<h2>Adding a provider</h2>
+<ol>
+<li>Scaffold a UCC add-on under <code>apps/TA-&lt;vendor&gt;_&lt;product&gt;/</code>.</li>
+<li>Subclass <code>ProviderAdapter</code> (<code>shared/ai_common/adapter.py</code>); set <code>vendor</code> /
+<code>product</code> and map the provider's payloads onto <code>ai.*</code>, leaving everything else in
+<code>raw.*</code>.</li>
+<li>Write <code>package/bin/event_categories.json</code> mapping its native event vocabulary onto the contract's
+categories, actions, resource types, and outcomes.</li>
+<li>Add raw fixtures under <code>tests/fixtures/&lt;vendor&gt;/raw/&lt;kind&gt;/</code>, generate the oracles, and make
+<code>test_adapter_conformance.py</code> pass.</li>
+<li>Point its inputs at <code>cloud_llm_apis</code>.</li>
+</ol>
+<p><code>SA-ai-governance</code> and <code>TA-ai-governance-indexes</code> need no changes — the new provider appears in
+the dashboards' provider selector automatically, because the choices come from the data.</p>
+<p>Keep provider-specific views in the provider's TA. Some concepts genuinely do not generalize (Claude Code
+tool-acceptance metrics have no OpenAI analogue); those belong beside their provider, not in the shared app.</p>
+</body>
+</html>
