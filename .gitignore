@@ -13,3 +13,7 @@ __pycache__/
 
 # macOS
 .DS_Store
+local.meta
+
+# ucc-gen default output dir
+output/
