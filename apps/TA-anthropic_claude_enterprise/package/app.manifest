@@ -16,18 +16,11 @@
             "developmentStatus": "Production/Stable",
             "intendedAudience": "IT Professionals"
         },
-        "commonInformationModels": {
-            "dataModels": [
-                "Authentication",
-                "Change"
-            ],
-            "version": "6.0.0"
-        },
         "description": "Claude Enterprise compliance and analytics data for Splunk.",
         "id": {
             "group": null,
             "name": "TA-anthropic_claude_enterprise",
-            "version": "1.1.0"
+            "version": "2.0.0"
         },
         "license": {
             "name": "Apache-2.0",

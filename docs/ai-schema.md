@@ -100,7 +100,7 @@ Serialization rules (adapter obligations):
 
 | Field | Meaning |
 |---|---|
-| `ai.actor.email` / `.id` / `.type` / `.ip` / `.user_agent` | Acting identity (activity, per-user reports, spend limits). Actor-union extras (api-key ids, SCIM/IdP details) stay in `raw.*` |
+| `ai.actor.email` / `.id` / `.type` / `.ip` / `.user_agent` / `.role` | Acting identity (activity, per-user reports, spend limits). On directory **snapshot** records `actor.*` carries the *subject* identity (`role` = provider org-role, e.g. `admin`). Actor-union extras (api-key ids, SCIM/IdP details) stay in `raw.*` |
 | `ai.org.id` / `.uuid` | Tenancy |
 | `ai.resource.type` | `org` \| `project` \| `user` \| `group` \| `identity` \| `api_key` \| `chat` \| `file` \| `memory` \| `integration` \| `other` (glob rules over `event_type`; fixed per record kind for snapshots) |
 | `ai.resource.id` | Provider id of the touched object when determinable |

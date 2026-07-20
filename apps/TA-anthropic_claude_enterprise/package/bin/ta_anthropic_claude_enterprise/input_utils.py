@@ -1,73 +1,24 @@
-"""Shared modular input utilities."""
+"""Thin binding of ai_common.input_utils to this add-on's identity."""
 
 from __future__ import annotations
 
-import json
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
 
-from solnlib import conf_manager, log
-from splunklib import modularinput as smi
+from ai_common import input_utils as _shared
 
 from ta_anthropic_claude_enterprise import ADDON_NAME
 
+SETTINGS_CONF = "ta-anthropic_claude_enterprise_settings"
+
+parse_event_time = _shared.parse_event_time
+write_json_event = _shared.write_json_event
+parse_int = _shared.parse_int
+parse_bool = _shared.parse_bool
+
 
 def logger_for_input(input_name: str) -> logging.Logger:
-    return log.Logs().get_logger(f"{ADDON_NAME.lower()}_{input_name}")
+    return _shared.logger_for_input(ADDON_NAME, input_name)
 
 
 def configure_logger(logger: logging.Logger, session_key: str) -> None:
-    log_level = conf_manager.get_log_level(
-        logger=logger,
-        session_key=session_key,
-        app_name=ADDON_NAME,
-        conf_name="ta-anthropic_claude_enterprise_settings",
-    )
-    logger.setLevel(log_level)
-
-
-def parse_event_time(value: Optional[str]) -> Optional[float]:
-    if not value:
-        return None
-    normalized = value.replace("Z", "+00:00")
-    try:
-        return datetime.fromisoformat(normalized).timestamp()
-    except ValueError:
-        return None
-
-
-def write_json_event(
-    event_writer: smi.EventWriter,
-    payload: Dict[str, Any],
-    index: Optional[str],
-    sourcetype: str,
-    source: str,
-    event_time: Optional[str] = None,
-) -> None:
-    # Drop top-level nulls: Splunk's JSON extraction turns them into literal
-    # "null" strings, which pollutes stats/tables downstream.
-    cleaned = {k: v for k, v in payload.items() if v is not None}
-    event = smi.Event(
-        data=json.dumps(cleaned, ensure_ascii=False, default=str),
-        index=index,
-        sourcetype=sourcetype,
-        source=source,
-        time=parse_event_time(event_time),
-    )
-    event_writer.write_event(event)
-
-
-def parse_int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
-
-
-def parse_bool(value: Any, default: bool = False) -> bool:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        return value
-    return str(value).lower() in {"1", "true", "yes", "on"}
+    _shared.configure_logger(logger, session_key, ADDON_NAME, SETTINGS_CONF)

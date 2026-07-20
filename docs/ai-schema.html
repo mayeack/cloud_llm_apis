@@ -106,7 +106,7 @@ shipped as data in each TA (<code>bin/event_categories.json</code>) so new provi
 <h2>Identity and scope</h2>
 <table>
 <tr><th>Field</th><th>Meaning</th></tr>
-<tr><td><code>ai.actor.email</code>/<code>.id</code>/<code>.type</code>/<code>.ip</code>/<code>.user_agent</code></td><td>Acting identity (activity, per-user reports, spend limits). Actor-union extras stay in <code>raw.*</code></td></tr>
+<tr><td><code>ai.actor.email</code>/<code>.id</code>/<code>.type</code>/<code>.ip</code>/<code>.user_agent</code>/<code>.role</code></td><td>Acting identity (activity, per-user reports, spend limits). On directory <strong>snapshot</strong> records <code>actor.*</code> carries the <em>subject</em> identity (<code>role</code> = provider org-role). Actor-union extras stay in <code>raw.*</code></td></tr>
 <tr><td><code>ai.org.id</code>/<code>.uuid</code></td><td>Tenancy</td></tr>
 <tr><td><code>ai.resource.type</code></td><td><code>org</code> | <code>project</code> | <code>user</code> | <code>group</code> | <code>identity</code> | <code>api_key</code> | <code>chat</code> | <code>file</code> | <code>memory</code> | <code>integration</code> | <code>other</code></td></tr>
 <tr><td><code>ai.resource.id</code></td><td>Provider id of the touched object when determinable</td></tr>

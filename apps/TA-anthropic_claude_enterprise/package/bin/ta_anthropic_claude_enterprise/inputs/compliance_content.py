@@ -13,7 +13,7 @@ from ta_anthropic_claude_enterprise.constants import (
     SOURCETYPE_COMPLIANCE_CHAT_CONTENT,
     SOURCETYPE_COMPLIANCE_FILE_METADATA,
 )
-from ta_anthropic_claude_enterprise.events import wrap_directory_record
+from ta_anthropic_claude_enterprise.adapter import AnthropicAdapter
 from ta_anthropic_claude_enterprise.input_utils import (
     configure_logger,
     logger_for_input,
@@ -82,6 +82,7 @@ def _collect_content(
 
     client = build_client_from_account(session_key, account_name)
     compliance = ComplianceAPI(client)
+    adapter = AnthropicAdapter.default()
     counts = {
         SOURCETYPE_COMPLIANCE_CHAT_CONTENT: 0,
         SOURCETYPE_COMPLIANCE_FILE_METADATA: 0,
@@ -92,13 +93,14 @@ def _collect_content(
         if not file_id:
             raise ValueError("target_file_id is required when collection_mode is file_id")
         file_record = compliance.get_file(file_id)
-        payload = wrap_directory_record(file_record, "file")
+        payload = adapter.directory_event(file_record, "file")
         write_json_event(
             event_writer=event_writer,
             payload=payload,
             index=index,
             sourcetype=SOURCETYPE_COMPLIANCE_FILE_METADATA,
             source=f"{source_prefix}:file",
+            event_time=payload["ai"]["time"],
         )
         counts[SOURCETYPE_COMPLIANCE_FILE_METADATA] = 1
         return counts
@@ -119,16 +121,19 @@ def _collect_content(
 
     for chat_id in chat_ids:
         chat = compliance.get_chat(chat_id)
-        payload = wrap_directory_record(chat, "chat")
-        if not include_messages and "messages" in payload:
-            payload["messages"] = "[REDACTED]"
-            payload["message_count"] = len(chat.get("messages") or [])
+        if not include_messages and "messages" in chat:
+            # Redact BEFORE the adapter so message bodies never enter the event.
+            chat = dict(chat)
+            chat["message_count"] = len(chat.get("messages") or [])
+            chat["messages"] = "[REDACTED]"
+        payload = adapter.directory_event(chat, "chat")
         write_json_event(
             event_writer=event_writer,
             payload=payload,
             index=index,
             sourcetype=SOURCETYPE_COMPLIANCE_CHAT_CONTENT,
             source=f"{source_prefix}:chat",
+            event_time=payload["ai"]["time"],
         )
         counts[SOURCETYPE_COMPLIANCE_CHAT_CONTENT] += 1
 

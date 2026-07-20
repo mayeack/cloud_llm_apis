@@ -17,7 +17,7 @@ from ta_anthropic_claude_enterprise.constants import (
     SOURCETYPE_COMPLIANCE_ORGANIZATION,
     SOURCETYPE_COMPLIANCE_USER,
 )
-from ta_anthropic_claude_enterprise.events import wrap_directory_record
+from ta_anthropic_claude_enterprise.adapter import AnthropicAdapter
 from ta_anthropic_claude_enterprise.input_utils import (
     configure_logger,
     logger_for_input,
@@ -82,6 +82,7 @@ def _collect_directory(
 
     client = build_client_from_account(session_key, account_name)
     compliance = ComplianceAPI(client)
+    adapter = AnthropicAdapter.default()
     index = input_item.get("index")
     source_prefix = f"anthropic:compliance:directory:{account_name}"
     counts = {
@@ -101,13 +102,14 @@ def _collect_directory(
     for resource_name, sourcetype, iterator in sync_handlers:
         try:
             for record in iterator():
-                payload = wrap_directory_record(record, resource_name.rstrip("s"))
+                payload = adapter.directory_event(record, resource_name.rstrip("s"))
                 write_json_event(
                     event_writer=event_writer,
                     payload=payload,
                     index=index,
                     sourcetype=sourcetype,
                     source=f"{source_prefix}:{resource_name}",
+                    event_time=payload["ai"]["time"],
                 )
                 counts[sourcetype] += 1
         except AnthropicAPIError as exc:

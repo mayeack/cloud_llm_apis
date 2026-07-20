@@ -23,7 +23,7 @@ from ta_anthropic_claude_enterprise.constants import (
     SOURCETYPE_ANALYTICS_USER_COST,
     SOURCETYPE_ANALYTICS_USER_USAGE,
 )
-from ta_anthropic_claude_enterprise.events import wrap_analytics_record, wrap_spend_limit_record
+from ta_anthropic_claude_enterprise.adapter import AnthropicAdapter
 from ta_anthropic_claude_enterprise.input_utils import (
     configure_logger,
     logger_for_input,
@@ -82,6 +82,7 @@ def _collect_analytics(
     account_name = input_item.get("account")
     client = build_client_from_account(session_key, account_name, require_analytics=True)
     analytics = AnalyticsAPI(client)
+    adapter = AnthropicAdapter.default()
     checkpoint = CheckpointStore(session_key)
     state = checkpoint.get(input_key)
 
@@ -111,12 +112,13 @@ def _collect_analytics(
 
     if parse_bool(input_item.get("collect_summaries"), True):
         counts[SOURCETYPE_ANALYTICS_SUMMARY] = _emit_summaries(
-            analytics, start_date, end_date, event_writer, index, source_prefix
+            adapter, analytics, start_date, end_date, event_writer, index, source_prefix
         )
 
     group_by = ["product", "model"]
     if parse_bool(input_item.get("collect_usage"), True):
         counts[SOURCETYPE_ANALYTICS_USAGE] = _emit_paginated_report(
+            adapter=adapter,
             iterator=analytics.get_usage_report(
                 starting_at=starting_at,
                 ending_at=ending_at,
@@ -132,6 +134,7 @@ def _collect_analytics(
 
     if parse_bool(input_item.get("collect_cost"), True):
         counts[SOURCETYPE_ANALYTICS_COST] = _emit_paginated_report(
+            adapter=adapter,
             iterator=analytics.get_cost_report(
                 starting_at=starting_at,
                 ending_at=ending_at,
@@ -148,6 +151,7 @@ def _collect_analytics(
     if parse_bool(input_item.get("collect_user_usage"), True):
         response = analytics.get_user_usage_report(starting_at=starting_at, ending_at=ending_at)
         counts[SOURCETYPE_ANALYTICS_USER_USAGE] = _emit_list_report(
+            adapter,
             response.get("data", []),
             report_type="user_usage",
             sourcetype=SOURCETYPE_ANALYTICS_USER_USAGE,
@@ -159,6 +163,7 @@ def _collect_analytics(
     if parse_bool(input_item.get("collect_user_cost"), True):
         response = analytics.get_user_cost_report(starting_at=starting_at, ending_at=ending_at)
         counts[SOURCETYPE_ANALYTICS_USER_COST] = _emit_list_report(
+            adapter,
             response.get("data", []),
             report_type="user_cost",
             sourcetype=SOURCETYPE_ANALYTICS_USER_COST,
@@ -169,6 +174,7 @@ def _collect_analytics(
 
     if parse_bool(input_item.get("collect_user_activity"), True):
         counts[SOURCETYPE_ANALYTICS_USER_ACTIVITY] = _emit_paginated_report(
+            adapter=adapter,
             iterator=analytics.list_user_activity(start_date=start_date, ending_date=end_date),
             report_type="user_activity",
             sourcetype=SOURCETYPE_ANALYTICS_USER_ACTIVITY,
@@ -180,6 +186,7 @@ def _collect_analytics(
     if parse_bool(input_item.get("collect_spend_limits"), True):
         spend_limits = SpendLimitsAPI(client)
         counts[SOURCETYPE_ANALYTICS_SPEND_LIMIT] = _emit_spend_limit_report(
+            adapter=adapter,
             iterator=spend_limits.list_effective_spend_limits(),
             record_type="spend_limit",
             sourcetype=SOURCETYPE_ANALYTICS_SPEND_LIMIT,
@@ -188,6 +195,7 @@ def _collect_analytics(
             source=f"{source_prefix}:spend_limits",
         )
         counts[SOURCETYPE_ANALYTICS_SPEND_LIMIT_REQUEST] = _emit_spend_limit_report(
+            adapter=adapter,
             iterator=spend_limits.list_spend_limit_increase_requests(status=["pending"]),
             record_type="spend_limit_request",
             sourcetype=SOURCETYPE_ANALYTICS_SPEND_LIMIT_REQUEST,
@@ -213,6 +221,7 @@ def _resolve_start_date(state: Dict[str, Any], end_date: date) -> date:
 
 
 def _emit_summaries(
+    adapter: AnthropicAdapter,
     analytics: AnalyticsAPI,
     start_date: date,
     end_date: date,
@@ -224,20 +233,21 @@ def _emit_summaries(
     summaries = response.get("summaries", [])
     count = 0
     for summary in summaries:
-        payload = wrap_analytics_record(summary, "summary")
+        payload = adapter.analytics_event(summary, "summary")
         write_json_event(
             event_writer=event_writer,
             payload=payload,
             index=index,
             sourcetype=SOURCETYPE_ANALYTICS_SUMMARY,
             source=f"{source_prefix}:summary",
-            event_time=summary.get("starting_at"),
+            event_time=payload["ai"]["time"],
         )
         count += 1
     return count
 
 
 def _emit_paginated_report(
+    adapter: AnthropicAdapter,
     iterator,
     report_type: str,
     sourcetype: str,
@@ -247,20 +257,21 @@ def _emit_paginated_report(
 ) -> int:
     count = 0
     for record in iterator:
-        payload = wrap_analytics_record(record, report_type)
+        payload = adapter.analytics_event(record, report_type)
         write_json_event(
             event_writer=event_writer,
             payload=payload,
             index=index,
             sourcetype=sourcetype,
             source=source,
-            event_time=record.get("starting_at") or record.get("date"),
+            event_time=payload["ai"]["time"],
         )
         count += 1
     return count
 
 
 def _emit_list_report(
+    adapter: AnthropicAdapter,
     records: List[Dict[str, Any]],
     report_type: str,
     sourcetype: str,
@@ -270,20 +281,21 @@ def _emit_list_report(
 ) -> int:
     count = 0
     for record in records:
-        payload = wrap_analytics_record(record, report_type)
+        payload = adapter.analytics_event(record, report_type)
         write_json_event(
             event_writer=event_writer,
             payload=payload,
             index=index,
             sourcetype=sourcetype,
             source=source,
-            event_time=record.get("date") or record.get("starting_at"),
+            event_time=payload["ai"]["time"],
         )
         count += 1
     return count
 
 
 def _emit_spend_limit_report(
+    adapter: AnthropicAdapter,
     iterator,
     record_type: str,
     sourcetype: str,
@@ -293,14 +305,14 @@ def _emit_spend_limit_report(
 ) -> int:
     count = 0
     for record in iterator:
-        payload = wrap_spend_limit_record(record, record_type)
+        payload = adapter.spend_limit_event(record, record_type)
         write_json_event(
             event_writer=event_writer,
             payload=payload,
             index=index,
             sourcetype=sourcetype,
             source=source,
-            event_time=record.get("created_at") or record.get("updated_at"),
+            event_time=payload["ai"]["time"],
         )
         count += 1
     return count

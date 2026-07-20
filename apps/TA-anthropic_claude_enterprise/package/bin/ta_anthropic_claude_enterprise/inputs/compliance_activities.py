@@ -11,8 +11,8 @@ from splunklib import modularinput as smi
 from ta_anthropic_claude_enterprise.account import build_client_from_account
 from ta_anthropic_claude_enterprise.api.compliance import ComplianceAPI
 from ta_anthropic_claude_enterprise.checkpoint import CheckpointStore
+from ta_anthropic_claude_enterprise.adapter import AnthropicAdapter
 from ta_anthropic_claude_enterprise.constants import SOURCETYPE_COMPLIANCE_ACTIVITY
-from ta_anthropic_claude_enterprise.events import normalize_activity
 from ta_anthropic_claude_enterprise.input_utils import (
     configure_logger,
     logger_for_input,
@@ -69,6 +69,7 @@ def _collect_activities(
     account_name = input_item.get("account")
     client = build_client_from_account(session_key, account_name)
     compliance = ComplianceAPI(client)
+    adapter = AnthropicAdapter.default()
     checkpoint = CheckpointStore(session_key)
     state = checkpoint.get(input_key)
 
@@ -92,14 +93,14 @@ def _collect_activities(
         order="asc",
         max_items=max_events,
     ):
-        normalized = normalize_activity(activity)
+        event = adapter.activity_event(activity)
         write_json_event(
             event_writer=event_writer,
-            payload=normalized,
+            payload=event,
             index=input_item.get("index"),
             sourcetype=SOURCETYPE_COMPLIANCE_ACTIVITY,
             source=f"anthropic:compliance:activities:{account_name}",
-            event_time=normalized.get("created_at"),
+            event_time=event["ai"]["time"],
         )
         count += 1
         last_activity_id = activity.get("id", last_activity_id)
