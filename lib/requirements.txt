@@ -1,4 +1,0 @@
-splunktaucclib
-splunk-sdk
-solnlib
-urllib3<2
