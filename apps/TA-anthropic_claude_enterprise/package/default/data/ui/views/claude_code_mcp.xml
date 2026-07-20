@@ -49,7 +49,7 @@
       <title>Claude Code Spend (USD)</title>
       <single>
         <search>
-          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:cost" raw.product=claude_code | stats sum('ai.cost.amount_usd') AS spend_usd | eval spend_usd=round(spend_usd,2)</query>
+          <query>`anthropic_claude_index` sourcetype="anthropic:analytics:cost" raw.product=claude_code | rename ai.cost.amount_usd AS cost_usd | stats sum(cost_usd) AS spend_usd | eval spend_usd=round(spend_usd,2)</query>
           <earliest>$time.earliest$</earliest>
           <latest>$time.latest$</latest>
         </search>
